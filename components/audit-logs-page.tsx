@@ -46,6 +46,8 @@ export function AuditLogsPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("")
   const [isLogDetailsOpen, setIsLogDetailsOpen] = useState(false)
   const [currentLog, setCurrentLog] = useState<Log | null>(null)
+  console.log("currentLog", currentLog);
+  
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =

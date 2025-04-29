@@ -1,18 +1,26 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
-import { Pencil, Trash2, Users } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Pencil, Trash2, Users, } from "lucide-react"
 import { toast } from "sonner"
-import { getAllUsers, addUser, updateUser, deleteUser } from "@/lib/api"
 
+// Interfaces
 interface User {
   _id: string
   fullname: string
@@ -22,21 +30,119 @@ interface User {
   lastActive?: string
 }
 
+interface ApiResponse<T> {
+  status: boolean
+  data: T
+}
+
+interface UserFormData {
+  fullname: string
+  email: string
+  password: string
+  role: string
+}
+
+// API functions
+const API_BASE_URL = "http://localhost:5001/api/v1/admin"
+const TOKEN =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8"
+
+const headers = {
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${TOKEN}`,
+}
+
+const getAllUsers = async (): Promise<ApiResponse<User[]>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/all-user`, {
+      method: "GET",
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("API Error:", error)
+    throw error
+  }
+}
+
+const addUser = async (userData: UserFormData): Promise<ApiResponse<User>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/add-user`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(userData),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("API Error:", error)
+    throw error
+  }
+}
+
+const updateUser = async (userId: string, userData: Partial<UserFormData>): Promise<ApiResponse<User>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/update-user/${userId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(userData),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("API Error:", error)
+    throw error
+  }
+}
+
+const deleteUser = async (userId: string): Promise<ApiResponse<null>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/delete-user/${userId}`, {
+      method: "DELETE",
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("API Error:", error)
+    throw error
+  }
+}
+
 export function UsersPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState<string>("")
   const [selectedRole, setSelectedRole] = useState<string>("")
   const [selectedStatus, setSelectedStatus] = useState<string>("")
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false)
-  const [isEditUserOpen, setIsEditUserOpen] = useState(false)
+  const [isAddUserOpen, setIsAddUserOpen] = useState<boolean>(false)
+  const [isEditUserOpen, setIsEditUserOpen] = useState<boolean>(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<UserFormData>({
     fullname: "",
     email: "",
     password: "",
     role: "client",
   })
-  const [editUser, setEditUser] = useState({
+  const [editUser, setEditUser] = useState<UserFormData>({
     fullname: "",
     email: "",
     password: "",
@@ -55,41 +161,7 @@ export function UsersPage() {
       }
     } catch (error) {
       console.error("Error fetching users:", error)
-      // Fallback to dummy data if API fails
-      setUsers([
-        {
-          _id: "13560",
-          fullname: "John Doe",
-          email: "john.doe@royalhouse.com",
-          role: "admin",
-          status: "active",
-          lastActive: "2025-04-22T10:30:00.000Z",
-        },
-        {
-          _id: "11500",
-          fullname: "Jane Doe",
-          email: "jane.smith@royalhouse.com",
-          role: "staff",
-          status: "active",
-          lastActive: "2025-04-23T08:30:00.000Z",
-        },
-        {
-          _id: "12118",
-          fullname: "Jane Smith",
-          email: "jane.smith@royalhouse.com",
-          role: "client",
-          status: "active",
-          lastActive: "2025-04-23T08:30:00.000Z",
-        },
-        {
-          _id: "13617",
-          fullname: "Jane Smith",
-          email: "jane.smith@royalhouse.com",
-          role: "client",
-          status: "inactive",
-          lastActive: "2025-04-20T14:30:00.000Z",
-        },
-      ])
+      toast.error("Failed to fetch users")
     }
   }
 
@@ -98,8 +170,9 @@ export function UsersPage() {
       user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user._id.includes(searchTerm)
-    const matchesRole = selectedRole ? user.role === selectedRole.toLowerCase() : true
-    const matchesStatus = selectedStatus ? user.status === selectedStatus.toLowerCase() : true
+    const matchesRole = selectedRole && selectedRole !== "all" ? user.role === selectedRole.toLowerCase() : true
+    const matchesStatus =
+      selectedStatus && selectedStatus !== "all" ? user.status === selectedStatus.toLowerCase() : true
 
     return matchesSearch && matchesRole && matchesStatus
   })
@@ -110,7 +183,6 @@ export function UsersPage() {
       toast.success("User added successfully")
       setIsAddUserOpen(false)
       fetchUsers()
-      // Reset form
       setNewUser({
         fullname: "",
         email: "",
@@ -137,10 +209,19 @@ export function UsersPage() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
+  const confirmDeleteUser = (userId: string) => {
+    setUserToDelete(userId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+
     try {
-      await deleteUser(userId)
-      toast.success(`User deleted successfully`)
+      await deleteUser(userToDelete)
+      toast.success("User deleted successfully")
+      setIsDeleteDialogOpen(false)
+      setUserToDelete(null)
       fetchUsers()
     } catch (error) {
       console.error("Error deleting user:", error)
@@ -148,7 +229,7 @@ export function UsersPage() {
     }
   }
 
-  const formatLastActive = (lastActive?: string) => {
+  const formatLastActive = (lastActive?: string): string => {
     if (!lastActive) return "Never"
 
     const date = new Date(lastActive)
@@ -183,7 +264,7 @@ export function UsersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <PageHeader title="Messages" subtitle="Manage users and communications" />
+      <PageHeader title="Users" subtitle="Manage users and permissions" />
 
       <div className="p-4">
         <div className="bg-white rounded-md shadow-sm p-4 mb-4">
@@ -192,7 +273,7 @@ export function UsersPage() {
               <Input
                 placeholder="Search..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 className="w-full"
               />
             </div>
@@ -230,7 +311,7 @@ export function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
+                  <TableHead>S.No</TableHead> {/* Added Serial Number */}
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
@@ -240,47 +321,54 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>{user._id}</TableCell>
-                    <TableCell>{user.fullname}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          user.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{formatLastActive(user.lastActive)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setCurrentUser(user)
-                            setEditUser({
-                              fullname: user.fullname,
-                              email: user.email,
-                              password: "",
-                              role: user.role,
-                            })
-                            setIsEditUserOpen(true)
-                          }}
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user, index) => (
+                    <TableRow key={user._id}>
+                      <TableCell>{index + 1}</TableCell> {/* Serial Number */}
+                      <TableCell>{user.fullname}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${user.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            }`}
                         >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user._id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                          {user.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatLastActive(user.lastActive)}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setCurrentUser(user)
+                              setEditUser({
+                                fullname: user.fullname,
+                                email: user.email,
+                                password: "",
+                                role: user.role,
+                              })
+                              setIsEditUserOpen(true)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => confirmDeleteUser(user._id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      No users found
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -290,55 +378,63 @@ export function UsersPage() {
       {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+          <DialogHeader className="flex items-center justify-between">
             <DialogTitle className="flex items-center">
               <div className="bg-blue-950 text-white p-1 rounded-full mr-2">
                 <Users className="h-5 w-5" />
               </div>
               Add User
             </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsAddUserOpen(false)}
+              className="absolute right-4 top-4"
+            >
+              {/* <X className="h-4 w-4" /> */}
+            </Button>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <label htmlFor="fullname" className="text-sm font-medium">
-                Name
+                Name :
               </label>
               <Input
                 id="fullname"
-                placeholder="John Doe"
+                placeholder=""
                 value={newUser.fullname}
-                onChange={(e) => handleInputChange(e, "new")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                Email :
               </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="user@royalmail.com"
+                placeholder=""
                 value={newUser.email}
-                onChange={(e) => handleInputChange(e, "new")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                Password :
               </label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+               
                 value={newUser.password}
-                onChange={(e) => handleInputChange(e, "new")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="role" className="text-sm font-medium">
-                Role
+                Role :
               </label>
-              <Select value={newUser.role} onValueChange={(value) => handleSelectChange("role", value, "new")}>
+              <Select value={newUser.role} onValueChange={(value: string) => handleSelectChange("role", value, "new")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
@@ -351,11 +447,9 @@ export function UsersPage() {
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
+            <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
+              Cancel
+            </Button>
             <Button type="button" className="bg-blue-950 hover:bg-blue-900" onClick={handleAddUser}>
               Save
             </Button>
@@ -373,37 +467,54 @@ export function UsersPage() {
               </div>
               Edit User
             </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsEditUserOpen(false)}
+              className="absolute right-4 top-4"
+            >
+              
+            </Button>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <label htmlFor="edit-fullname" className="text-sm font-medium">
-                Name
+                Name :
               </label>
-              <Input id="fullname" value={editUser.fullname} onChange={(e) => handleInputChange(e, "edit")} />
+              <Input
+                id="fullname"
+                value={editUser.fullname}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="edit-email" className="text-sm font-medium">
-                Email
+                Email :
               </label>
-              <Input id="email" type="email" value={editUser.email} onChange={(e) => handleInputChange(e, "edit")} />
+              <Input
+                id="email"
+                type="email"
+                value={editUser.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="edit-password" className="text-sm font-medium">
-                Password (leave blank to keep current)
+                Password (leave blank to keep current) :
               </label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+               
                 value={editUser.password}
-                onChange={(e) => handleInputChange(e, "edit")}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="edit-role" className="text-sm font-medium">
-                Role
+                Role :
               </label>
-              <Select value={editUser.role} onValueChange={(value) => handleSelectChange("role", value, "edit")}>
+              <Select value={editUser.role} onValueChange={(value: string) => handleSelectChange("role", value, "edit")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
@@ -416,17 +527,34 @@ export function UsersPage() {
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
+            <Button type="button" variant="outline" onClick={() => setIsEditUserOpen(false)}>
+              Cancel
+            </Button>
             <Button type="button" className="bg-blue-950 hover:bg-blue-900" onClick={handleEditUser}>
               Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user and remove their data from our
+              servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
