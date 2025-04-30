@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,103 +30,167 @@ import {
 import { Pencil, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 
-// Dummy data
-const visits = [
-  {
-    id: "19560",
-    clientName: "Annette Black",
-    staffName: "Guy Hawkins",
-    dateTime: "15 May 2023 8:30 am",
-    visitType: "Follow-up",
-    status: "Scheduled",
-  },
-  {
-    id: "11500",
-    clientName: "Kristin Watson",
-    staffName: "Darlene Robertson",
-    dateTime: "15 May 2023 9:30 am",
-    visitType: "Routine Check",
-    status: "In Progress",
-  },
-  {
-    id: "12118",
-    clientName: "Jenny Wilson",
-    staffName: "Esther Howard",
-    dateTime: "15 May 2023 9:30 am",
-    visitType: "Follow-up",
-    status: "Complete",
-  },
-  {
-    id: "13617",
-    clientName: "Jane Cooper",
-    staffName: "Arlene McCoy",
-    dateTime: "15 May 2023 8:45 am",
-    visitType: "Routine Check",
-    status: "Canceled",
-  },
-  {
-    id: "10352",
-    clientName: "Floyd Miles",
-    staffName: "Wade Warren",
-    dateTime: "15 May 2023 8:30 am",
-    visitType: "Follow-up",
-    status: "Scheduled",
-  },
-];
-
 interface Visit {
   id: string;
   clientName: string;
   staffName: string;
-  dateTime: string;
-  visitType: string;
+  date: string;
+  type: string;
   status: string;
 }
 
 export function VisitPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isAddVisitOpen, setIsAddVisitOpen] = useState(false);
   const [isViewVisitOpen, setIsViewVisitOpen] = useState(false);
   const [isEditVisitOpen, setIsEditVisitOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [currentVisit, setCurrentVisit] = useState<Visit | null>(null);
+  const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
+  const [visits, setVisits] = useState<Visit[]>([]);
+
+  // Fetch visits from API
+  useEffect(() => {
+    const fetchVisits = async () => {
+      try {
+        const response = await fetch("http://localhost:5001/api/v1/visits/get-all-visit");
+        if (!response.ok) {
+          throw new Error("Failed to fetch visits");
+        }
+        const { data } = await response.json();
+        const transformedVisits: Visit[] = data.map((visit: any) => ({
+          id: visit._id,
+          clientName: visit.client?.fullname || "N/A",
+          staffName: visit.staff?.fullname || "Staff not assigned",
+          date: visit.date,
+          type: visit.type,
+          status: visit.status,
+        }));
+        setVisits(transformedVisits);
+      } catch (error) {
+        console.error("Error fetching visits:", error);
+        toast.error("Failed to load visits");
+      }
+    };
+
+    fetchVisits();
+  }, []);
 
   const filteredVisits = visits.filter((visit) => {
     const matchesSearch =
       visit.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visit.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visit.id.includes(searchTerm);
-    const matchesStatus = selectedStatus
-      ? visit.status === selectedStatus
-      : true;
+      visit.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus;
 
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddVisit = () => {
-    toast.success("Visit added successfully");
-    setIsAddVisitOpen(false);
+  const handleAddVisit = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/v1/visits/add-visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client: "client_id",
+          staff: "staff_id",
+          date: new Date().toISOString(),
+          type: "Follow-up",
+          status: "Scheduled",
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to add visit");
+      const newVisit = await response.json();
+      setVisits([...visits, {
+        id: newVisit._id,
+        clientName: newVisit.client?.fullname || "N/A",
+        staffName: newVisit.staff?.fullname || "Staff not assigned",
+        date: newVisit.date,
+        type: newVisit.type,
+        status: newVisit.status,
+      }]);
+      toast.success("Visit added successfully");
+      setIsAddVisitOpen(false);
+    } catch (error) {
+      console.error("Error adding visit:", error);
+      toast.error("Failed to add visit");
+    }
   };
 
-  const handleEditVisit = () => {
-    toast.success("Visit updated successfully");
-    setIsEditVisitOpen(false);
+  const handleEditVisit = async () => {
+    if (!currentVisit) return;
+    try {
+      const response = await fetch(`http://localhost:5001/api/v1/visits/update-visit/${currentVisit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client: "client_id",
+          staff: "staff_id",
+          date: currentVisit.date,
+          type: currentVisit.type,
+          status: currentVisit.status,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to update visit");
+      const updatedVisit = await response.json();
+      setVisits(visits.map((visit) =>
+        visit.id === currentVisit.id
+          ? {
+            id: updatedVisit._id,
+            clientName: updatedVisit.client?.fullname || "N/A",
+            staffName: updatedVisit.staff?.fullname || "Staff not assigned",
+            date: updatedVisit.date,
+            type: updatedVisit.type,
+            status: updatedVisit.status,
+          }
+          : visit
+      ));
+      toast.success("Visit updated successfully");
+      setIsEditVisitOpen(false);
+    } catch (error) {
+      console.error("Error updating visit:", error);
+      toast.error("Failed to update visit");
+    }
   };
 
-  const handleDeleteVisit = (visitId: string) => {
-    toast.success(`Visit ${visitId} deleted successfully`);
+  const handleDeleteVisit = async () => {
+    if (!visitToDelete) return;
+    try {
+      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c"; // Adjust token retrieval as needed
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(`http://localhost:5001/api/v1/visits/issues/delete-visit/${visitToDelete}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to delete visit");
+      setVisits(visits.filter((visit) => visit.id !== visitToDelete));
+      toast.success(`Visit deleted successfully`);
+      setIsDeleteConfirmOpen(false);
+      setVisitToDelete(null);
+    } catch (error) {
+      console.error("Error deleting visit:", error);
+      toast.error("Failed to delete visit");
+      setIsDeleteConfirmOpen(false);
+      setVisitToDelete(null);
+    }
   };
 
   const getStatusClass = (status: string) => {
     switch (status) {
       case "Scheduled":
-        return "status-scheduled";
+        return "bg-blue-100 text-blue-800";
       case "In Progress":
-        return "status-in-progress";
+        return "bg-yellow-100 text-yellow-800";
       case "Complete":
-        return "status-complete";
+        return "bg-green-100 text-green-800";
       case "Canceled":
-        return "status-cancelled";
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -154,10 +218,10 @@ export function VisitPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Scheduled">Scheduled</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Complete">Complete</SelectItem>
-                  <SelectItem value="Canceled">Canceled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -188,13 +252,17 @@ export function VisitPage() {
                     <TableCell>{visit.id}</TableCell>
                     <TableCell>{visit.clientName}</TableCell>
                     <TableCell>{visit.staffName}</TableCell>
-                    <TableCell>{visit.dateTime}</TableCell>
-                    <TableCell>{visit.visitType}</TableCell>
+                    <TableCell>
+                      {new Date(visit.date).toLocaleString("en-GB", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                        hour12: true,
+                      })}
+                    </TableCell>
+                    <TableCell>{visit.type}</TableCell>
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                          visit.status
-                        )}`}
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}
                       >
                         {visit.status}
                       </span>
@@ -227,7 +295,10 @@ export function VisitPage() {
                           variant="ghost"
                           size="icon"
                           className="action-button"
-                          onClick={() => handleDeleteVisit(visit.id)}
+                          onClick={() => {
+                            setVisitToDelete(visit.id);
+                            setIsDeleteConfirmOpen(true);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -304,8 +375,8 @@ export function VisitPage() {
                   <SelectValue placeholder="Select Visit Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="follow-up">Follow-up</SelectItem>
-                  <SelectItem value="routine">Routine Check</SelectItem>
+                  <SelectItem value="Follow-up">Follow-up</SelectItem>
+                  <SelectItem value="Routine Check">Routine Check</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -341,49 +412,48 @@ export function VisitPage() {
               <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
                 <Eye className="h-5 w-5" />
               </div>
-              Visit
+              Visit Details
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Client:</span>
-              <span className="text-sm">{currentVisit?.clientName}</span>
+          {currentVisit && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Client:</span>
+                <span className="text-sm">{currentVisit.clientName}</span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Date & Time:</span>
+                <span className="text-sm">
+                  {new Date(currentVisit.date).toLocaleString("en-GB", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Staff:</span>
+                <span className="text-sm">{currentVisit.staffName}</span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Visit Type:</span>
+                <span className="text-sm">{currentVisit.type}</span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Status:</span>
+                <span
+                  className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass(
+                    currentVisit.status
+                  )}`}
+                >
+                  {currentVisit.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Notes:</span>
+                <span className="text-sm">No notes provided for this visit.</span>
+              </div>
             </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Date:</span>
-              <span className="text-sm">
-                {currentVisit?.dateTime.split(" ").slice(0, 3).join(" ")}
-              </span>
-            </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Time:</span>
-              <span className="text-sm">
-                {currentVisit?.dateTime.split(" ").slice(3).join(" ")}
-              </span>
-            </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Staff:</span>
-              <span className="text-sm">{currentVisit?.staffName}</span>
-            </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Visit Type:</span>
-              <span className="text-sm">{currentVisit?.visitType}</span>
-            </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Status:</span>
-              <span
-                className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass(
-                  currentVisit?.status || ""
-                )}`}
-              >
-                {currentVisit?.status}
-              </span>
-            </div>
-            <div className="grid grid-cols-[100px_1fr] gap-2">
-              <span className="text-sm font-medium">Notes:</span>
-              <span className="text-sm">No notes provided for this visit.</span>
-            </div>
-          </div>
+          )}
           <DialogFooter className="sm:justify-center">
             <DialogClose asChild>
               <Button type="button" className="bg-[#0a1172] hover:bg-[#1a2182]">
@@ -405,76 +475,82 @@ export function VisitPage() {
               Edit Visit
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="edit-client" className="text-sm font-medium">
-                Client
-              </label>
-              <Select defaultValue="client1">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="client1">
-                    {currentVisit?.clientName}
-                  </SelectItem>
-                  <SelectItem value="client2">Other Client</SelectItem>
-                </SelectContent>
-              </Select>
+          {currentVisit && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="edit-client" className="text-sm font-medium">
+                  Client
+                </label>
+                <Select defaultValue={currentVisit.clientName}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={currentVisit.clientName}>
+                      {currentVisit.clientName}
+                    </SelectItem>
+                    <SelectItem value="Other Client">Other Client</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-date" className="text-sm font-medium">
+                  Date
+                </label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  defaultValue={new Date(currentVisit.date).toISOString().split("T")[0]}
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-time" className="text-sm font-medium">
+                  Time
+                </label>
+                <Input
+                  id="edit-time"
+                  type="time"
+                  defaultValue={new Date(currentVisit.date).toTimeString().slice(0, 5)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-staff" className="text-sm font-medium">
+                  Staff
+                </label>
+                <Select defaultValue={currentVisit.staffName}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Staff" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={currentVisit.staffName}>
+                      {currentVisit.staffName}
+                    </SelectItem>
+                    <SelectItem value="Other Staff">Other Staff</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-visitType" className="text-sm font-medium">
+                  Visit Type
+                </label>
+                <Select defaultValue={currentVisit.type}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Visit Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Follow-up">Follow-up</SelectItem>
+                    <SelectItem value="Routine Check">Routine Check</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-notes" className="text-sm font-medium">
+                  Notes
+                </label>
+                <Input id="edit-notes" placeholder="Add notes..." />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-date" className="text-sm font-medium">
-                Date
-              </label>
-              <Input id="edit-date" type="date" defaultValue="2023-05-15" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-time" className="text-sm font-medium">
-                Time
-              </label>
-              <Input id="edit-time" type="time" defaultValue="08:30" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-staff" className="text-sm font-medium">
-                Staff
-              </label>
-              <Select defaultValue="staff1">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Staff" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff1">
-                    {currentVisit?.staffName}
-                  </SelectItem>
-                  <SelectItem value="staff2">Other Staff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-visitType" className="text-sm font-medium">
-                Visit Type
-              </label>
-              <Select
-                defaultValue={currentVisit?.visitType
-                  .toLowerCase()
-                  .replace(/\s+/g, "-")}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Visit Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="follow-up">Follow-up</SelectItem>
-                  <SelectItem value="routine-check">Routine Check</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-notes" className="text-sm font-medium">
-                Notes
-              </label>
-              <Input id="edit-notes" placeholder="Add notes..." />
-            </div>
-          </div>
+          )}
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
               <Button type="button" variant="outline">
@@ -487,6 +563,43 @@ export function VisitPage() {
               onClick={handleEditVisit}
             >
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              Confirm Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm">
+              Are you sure you want to delete this visit? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setVisitToDelete(null)}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handleDeleteVisit}
+            >
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>
