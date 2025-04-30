@@ -183,21 +183,15 @@ export function DashboardPage() {
     const fetchMetrics = async () => {
       try {
         // We'll use Promise.all to fetch multiple metrics in parallel
-        const [
-          activePlansRes,
-          monthlyRevenueRes,
-          activeDiscountsRes,
-          totalClientsRes,
-          totalStaffRes,
-          activeUsersRes,
-        ] = await Promise.all([
-          getActivePlans().catch(() => ({ totalActivePlans: 0 })),
-          getMonthlyRevenue().catch(() => ({ monthlyRevenue: 0 })),
-          getActiveDiscounts().catch(() => ({ activeDiscounts: 0 })),
-          getTotalClients().catch(() => ({ data: 0 })),
-          getTotalStaff().catch(() => ({ data: 0 })),
-          getActiveUsers().catch(() => ({ data: 0 })),
-        ]);
+        const [totalClientsRes, totalStaffRes, activeUsersRes] =
+          await Promise.all([
+            getActivePlans().catch(() => ({ totalActivePlans: 0 })),
+            getMonthlyRevenue().catch(() => ({ monthlyRevenue: 0 })),
+            getActiveDiscounts().catch(() => ({ activeDiscounts: 0 })),
+            getTotalClients().catch(() => ({ data: 0 })),
+            getTotalStaff().catch(() => ({ data: 0 })),
+            getActiveUsers().catch(() => ({ data: 0 })),
+          ]);
 
         // Update stats with real data
         setStats([

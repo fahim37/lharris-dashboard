@@ -1,5 +1,7 @@
-import { VisitsPage } from "@/components/schedule/visits-page"
+import React from "react";
 
-export default function Page() {
-  return <VisitsPage />
-}
+const page = () => {
+  return <div>page</div>;
+};
+
+export default page;

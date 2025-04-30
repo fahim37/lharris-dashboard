@@ -1,5 +1,7 @@
-import { UsersPage } from "@/components/messages/users-page"
+import React from "react";
 
-export default function Page() {
-  return <UsersPage />
-}
+const page = () => {
+  return <div>page</div>;
+};
+
+export default page;

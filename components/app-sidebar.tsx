@@ -12,6 +12,7 @@ import {
   ClipboardList,
   LogOut,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -61,8 +62,7 @@ export function AppSidebar() {
       <div
         className="sidebar-item mb-4"
         onClick={() => {
-          // Handle logout
-          console.log("Logging out...");
+          signOut({ callbackUrl: "/" });
         }}
       >
         <LogOut className="h-5 w-5" />
