@@ -7,55 +7,72 @@ const handler = NextAuth({
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: {
+          label: "Email",
+          type: "email",
+          placeholder: "email@example.com",
+        },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Email and password are required");
+          }
+
+          const result = await loginUser({
+            email: credentials.email,
+            password: credentials.password,
+          });
+
+          if (!result.success) {
+            throw new Error(result.message || "Invalid credentials");
+          }
+
+          const user = result.data.user;
+
+          return {
+            id: user._id.toString(), // Convert to string if needed
+            name: user.fullname,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isVerified,
+            status: user.status,
+            token: result.token,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
         }
-
-        const result = await loginUser({
-          email: credentials.email,
-          password: credentials.password,
-        });
-
-        if (!result.success) {
-          throw new Error(result.message || "Invalid credentials");
-        }
-
-        // Return the user object that will be stored in the JWT
-        return {
-          id: result.data.user._id,
-          name: result.data.user.fullname,
-          email: result.data.user.email,
-          role: result.data.user.role,
-          token: result.token,
-        };
       },
     }),
   ],
   pages: {
     signIn: "/login",
     signOut: "/logout",
-    error: "/error",
+    error: "/auth/error",
   },
   callbacks: {
     async jwt({ token, user }) {
-      // Initial sign in
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        token.user = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+          status: user.status,
+        };
         token.accessToken = user.token;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.accessToken = token.accessToken as string;
-      }
+      session.user = {
+        ...token.user,
+        id: token.user.id,
+      };
+      session.accessToken = token.accessToken;
       return session;
     },
   },
@@ -63,6 +80,8 @@ const handler = NextAuth({
     strategy: "jwt",
     maxAge: 24 * 60 * 60, // 24 hours
   },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 });
 
 export { handler as GET, handler as POST };

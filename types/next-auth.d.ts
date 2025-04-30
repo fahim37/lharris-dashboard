@@ -1,11 +1,15 @@
-import type { DefaultSession } from "next-auth";
+import "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      name: string;
+      email: string;
       role: string;
-    } & DefaultSession["user"];
+      isVerified: boolean;
+      status: string;
+    };
     accessToken: string;
   }
 
@@ -14,14 +18,22 @@ declare module "next-auth" {
     name: string;
     email: string;
     role: string;
+    isVerified: boolean;
+    status: string;
     token: string;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string;
-    role: string;
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      isVerified: boolean;
+      status: string;
+    };
     accessToken: string;
   }
 }
