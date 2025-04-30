@@ -1,16 +1,47 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect, useRef } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Users, Calendar, Clock, Edit, Eye, Trash2, FileText, ChevronRight } from "lucide-react"
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { useState, useEffect, useRef } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Search,
+  Users,
+  Calendar,
+  Clock,
+  Edit,
+  Eye,
+  Trash2,
+  FileText,
+  ChevronRight,
+} from "lucide-react";
+import {
+  Line,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -18,213 +49,206 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
-import { Textarea } from "@/components/ui/textarea"
-import { jsPDF } from "jspdf"
-import html2canvas from "html2canvas"
-import Image from "next/image"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import Image from "next/image";
 
 // Define types for our metrics data
 interface MetricsData {
-  activeUsers: number
-  totalVisits: number
-  pendingVisits: number
-  totalSecurityStaff: number
-  totalAdmin: number
-  confirmVisits: number
-  inProgress: number
+  activeUsers: number;
+  totalVisits: number;
+  pendingVisits: number;
+  totalSecurityStaff: number;
+  totalAdmin: number;
+  confirmVisits: number;
+  inProgress: number;
 }
-
-
-
-
-
 
 // Define types for our calendar data
 interface CalendarDay {
-  day: number
-  status?: "success" | "cancelled" | "pending" | "confirmed" | "normal"
-  hasVisit?: boolean
-  visitTime?: string
+  day: number;
+  status?: "success" | "cancelled" | "pending" | "confirmed" | "normal";
+  hasVisit?: boolean;
+  visitTime?: string;
 }
-
-
 
 // Define types for our notifications data
 interface Notification {
-  type: string
-  message: string
-  time: string
+  type: string;
+  message: string;
+  time: string;
 }
 
 // Define types for our visits API response
 interface VisitClient {
-  _id: string
-  fullname: string
-  email: string
+  _id: string;
+  fullname: string;
+  email: string;
 }
 
 interface VisitStaff {
-  _id: string
-  fullname: string
-  email: string
+  _id: string;
+  fullname: string;
+  email: string;
 }
 
 interface VisitIssueMedia {
-  type: "photo" | "video"
-  url: string
-  _id: string
+  type: "photo" | "video";
+  url: string;
+  _id: string;
 }
 
 interface VisitIssue {
-  place: string
-  issue: string
-  type: string
-  media: VisitIssueMedia[]
-  notes: string
-  _id: string
+  place: string;
+  issue: string;
+  type: string;
+  media: VisitIssueMedia[];
+  notes: string;
+  _id: string;
 }
 
 interface VisitData {
-  _id: string
-  client: VisitClient
-  staff: VisitStaff
-  address: string
-  date: string
-  status: string
-  cancellationReason: string
-  type?: string
-  notes: string
-  isPaid: boolean
-  issues: VisitIssue[]
-  createdAt: string
-  updatedAt: string
-  __v: number
+  _id: string;
+  client: VisitClient;
+  staff: VisitStaff;
+  address: string;
+  date: string;
+  status: string;
+  cancellationReason: string;
+  type?: string;
+  notes: string;
+  isPaid: boolean;
+  issues: VisitIssue[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }
 
 interface VisitResponse {
-  success: boolean
-  data: VisitData[]
+  success: boolean;
+  data: VisitData[];
   meta: {
-    currentPage: number
-    totalPages: number
-    totalItems: number
-    itemsPerPage: number
-  }
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
 }
 
 interface SpecificVisitResponse {
-  _id: string
+  _id: string;
   client: {
-    _id: string
-    fullname: string
-    password: string
-    email: string
-    role: string
-    isVerified: boolean
-    status: string
-    createdAt: string
-    updatedAt: string
-    __v: number
-    lastActive: string
-  }
+    _id: string;
+    fullname: string;
+    password: string;
+    email: string;
+    role: string;
+    isVerified: boolean;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+    lastActive: string;
+  };
   staff?: {
-    _id: string
-    fullname: string
-    email: string
-  }
-  address?: string
-  date?: string
-  status?: string
-  cancellationReason?: string
-  type?: string
-  notes?: string
-  isPaid?: boolean
-  issues?: VisitIssue[]
-  createdAt?: string
-  updatedAt?: string
-  __v?: number
+    _id: string;
+    fullname: string;
+    email: string;
+  };
+  address?: string;
+  date?: string;
+  status?: string;
+  cancellationReason?: string;
+  type?: string;
+  notes?: string;
+  isPaid?: boolean;
+  issues?: VisitIssue[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
 
 export interface UserInfo {
-  _id: string
-  fullname: string
-  email: string
+  _id: string;
+  fullname: string;
+  email: string;
 }
 
 export interface PlanInfo {
-  _id: string
-  name: string
-  price: number
+  _id: string;
+  name: string;
+  price: number;
 }
 
 export interface RecentActivityItem {
-  _id: string
-  user: UserInfo
-  visit: string | null
-  plan?: PlanInfo
-  amount: number
-  status: "completed" | "pending" | "failed"
-  transactionId: string
-  paymentMethod: "stripe" | "paypal" | "cash"
-  createdAt: string
-  paymentDate: string
-  __v: number
+  _id: string;
+  user: UserInfo;
+  visit: string | null;
+  plan?: PlanInfo;
+  amount: number;
+  status: "completed" | "pending" | "failed";
+  transactionId: string;
+  paymentMethod: "stripe" | "paypal" | "cash";
+  createdAt: string;
+  paymentDate: string;
+  __v: number;
 }
 
 export interface RecentActivityResponse {
-  data: RecentActivityItem[]
+  data: RecentActivityItem[];
 }
 
 interface RevenueGrowthData {
-  date: string
-  revenue: number
+  date: string;
+  revenue: number;
 }
 
 interface RevenueGrowthResponse {
-  status: boolean
-  message: string
-  data: RevenueGrowthData[]
+  status: boolean;
+  message: string;
+  data: RevenueGrowthData[];
 }
 
 interface UserData {
-  _id: string
-  fullname: string
-  email: string
-  role: "admin" | "client" | "staff" | "user" | "moderator"
-  status: "active" | "inactive"
-  lastActive: string
+  _id: string;
+  fullname: string;
+  email: string;
+  role: "admin" | "client" | "staff" | "user" | "moderator";
+  status: "active" | "inactive";
+  lastActive: string;
 }
 
 interface StaffMember {
-  _id: string
-  fullname: string
-  email: string
-  role: string
+  _id: string;
+  fullname: string;
+  email: string;
+  role: string;
 }
 
 interface EditVisitData {
-  staff: string
-  type: string
-  notes: string
+  staff: string;
+  type: string;
+  notes: string;
 }
 interface allmatrics {
-  activeUsersCount: number
-  totalVisits: number
-  pendingVisits: number
-  totalSecurityStaff: number
-  totalAdmin: number
-  confirmedVisitCount: number
-  completedVisitCount: number
+  activeUsersCount: number;
+  totalVisits: number;
+  pendingVisits: number;
+  totalSecurityStaff: number;
+  totalAdmin: number;
+  confirmedVisitCount: number;
+  completedVisitCount: number;
 }
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [visitSearchTerm, setVisitSearchTerm] = useState("")
-  const [chartTimeframe, setChartTimeframe] = useState("12months")
+  const [activeTab, setActiveTab] = useState("overview");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [visitSearchTerm, setVisitSearchTerm] = useState("");
+  const [chartTimeframe, setChartTimeframe] = useState("12months");
   const [metrics, setMetrics] = useState<MetricsData>({
     activeUsers: 0,
     totalVisits: 0,
@@ -233,33 +257,33 @@ export default function DashboardPage() {
     totalAdmin: 0,
     confirmVisits: 0,
     inProgress: 0,
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState("")
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState("");
   const [editUserData, setEditUserData] = useState({
     fullname: "",
     email: "",
     password: "",
     role: "client" as "client" | "admin" | "staff",
-  })
-  const [visitsData, setVisitsData] = useState<VisitResponse | null>(null)
-  const [specificVisit, setSpecificVisit] = useState<SpecificVisitResponse | null>(null)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const [selectedVisitId, setSelectedVisitId] = useState("")
-  const [isDeleteVisitDialogOpen, setIsDeleteVisitDialogOpen] = useState(false)
-  const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all")
-  const [visitDateFilter, setVisitDateFilter] = useState<string>("all")
-  const [isEditVisitDialogOpen, setIsEditVisitDialogOpen] = useState(false)
+  });
+  const [visitsData, setVisitsData] = useState<VisitResponse | null>(null);
+  const [specificVisit, setSpecificVisit] =
+    useState<SpecificVisitResponse | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedVisitId, setSelectedVisitId] = useState("");
+  const [isDeleteVisitDialogOpen, setIsDeleteVisitDialogOpen] = useState(false);
+  const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all");
+  const [visitDateFilter, setVisitDateFilter] = useState<string>("all");
+  const [isEditVisitDialogOpen, setIsEditVisitDialogOpen] = useState(false);
   const [editVisitData, setEditVisitData] = useState<EditVisitData>({
     staff: "",
     type: "",
     notes: "",
-  })
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([])
-
+  });
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
 
   // Sample calendar data
   const calendarDays: CalendarDay[][] = [
@@ -308,36 +332,66 @@ export default function DashboardPage() {
       { day: 1, status: "normal" },
       { day: 2, status: "normal" },
     ],
-  ]
+  ];
 
   // Sample notifications data
   const notifications: Notification[] = [
-    { type: "Visit scheduled", message: "Visit scheduled for March 26", time: "2h Ago" },
-    { type: "New message", message: "New message from Security Team", time: "Mar 19, 13:30 AM" },
-    { type: "New message", message: "New message from Security Team", time: "Mar 19, 13:30 AM" },
-    { type: "Visit log", message: "Visit log updated", time: "Mar 22, 13:30 AM" },
-    { type: "New message", message: "New message from Security Team", time: "Mar 19, 13:30 AM" },
-    { type: "Visit log", message: "Visit log updated", time: "Mar 22, 13:30 AM" },
-    { type: "Visit log", message: "Visit log updated", time: "Mar 22, 13:30 AM" },
-  ]
+    {
+      type: "Visit scheduled",
+      message: "Visit scheduled for March 26",
+      time: "2h Ago",
+    },
+    {
+      type: "New message",
+      message: "New message from Security Team",
+      time: "Mar 19, 13:30 AM",
+    },
+    {
+      type: "New message",
+      message: "New message from Security Team",
+      time: "Mar 19, 13:30 AM",
+    },
+    {
+      type: "Visit log",
+      message: "Visit log updated",
+      time: "Mar 22, 13:30 AM",
+    },
+    {
+      type: "New message",
+      message: "New message from Security Team",
+      time: "Mar 19, 13:30 AM",
+    },
+    {
+      type: "Visit log",
+      message: "Visit log updated",
+      time: "Mar 22, 13:30 AM",
+    },
+    {
+      type: "Visit log",
+      message: "Visit log updated",
+      time: "Mar 22, 13:30 AM",
+    },
+  ];
 
-  const [matricsData, setMetricsData] = useState<allmatrics | null>(null)
-  const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([])
-  const [isRevenueLoading, setIsRevenueLoading] = useState(false)
-  const chartRef = useRef<HTMLDivElement>(null)
-  console.log("matricsData", matricsData)
+  const [matricsData, setMetricsData] = useState<allmatrics | null>(null);
+  const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
+  const [isRevenueLoading, setIsRevenueLoading] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  console.log("matricsData", matricsData);
 
   // Fetch metrics data from API
   useEffect(() => {
     const fetchMetrics = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:5001/api/v1/admin/metrics")
+        const response = await fetch(
+          "http://localhost:5001/api/v1/admin/metrics"
+        );
         if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`)
+          throw new Error(`API request failed with status ${response.status}`);
         }
-        const data = await response.json()
-        setMetricsData(data?.data)
+        const data = await response.json();
+        setMetricsData(data?.data);
         // console.log("Metrics data:", data);
 
         // Update metrics with data from API
@@ -349,47 +403,50 @@ export default function DashboardPage() {
           totalAdmin: data?.data?.totalAdmins || 28,
           confirmVisits: data?.data?.confirmVisits || 128,
           inProgress: data?.data?.inProgress || 9,
-        })
-        setError(null)
+        });
+        setError(null);
       } catch (err) {
-        console.error("Error fetching metrics:", err)
-        setError("Failed to load metrics data. Using fallback data.")
+        console.error("Error fetching metrics:", err);
+        setError("Failed to load metrics data. Using fallback data.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchMetrics()
-  }, [])
+    fetchMetrics();
+  }, []);
 
-  const [recetdata, setData] = useState<RecentActivityResponse | null>(null)
+  const [recetdata, setData] = useState<RecentActivityResponse | null>(null);
 
   useEffect(() => {
     const fetchActivity = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/admin/metrics/recent-user-activity", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-            "Content-Type": "application/json",
-          },
-        })
+        const res = await fetch(
+          "http://localhost:5001/api/v1/admin/metrics/recent-user-activity",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
-          throw new Error("Failed to fetch")
+          throw new Error("Failed to fetch");
         }
 
-        const data = await res.json()
-        setData(data)
+        const data = await res.json();
+        setData(data);
       } catch (err) {
-        console.error("Error:", err)
+        console.error("Error:", err);
       }
-    }
+    };
 
-    fetchActivity()
-  }, [])
+    fetchActivity();
+  }, []);
 
-  const [userData, setUserData] = useState<UserData[]>([])
+  const [userData, setUserData] = useState<UserData[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -400,101 +457,108 @@ export default function DashboardPage() {
             Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
             "Content-Type": "application/json",
           },
-        })
+        });
 
         if (!res.ok) {
-          throw new Error("Failed to fetch")
+          throw new Error("Failed to fetch");
         }
 
-        const alluser = await res.json()
-        setUserData(alluser.data)
+        const alluser = await res.json();
+        setUserData(alluser.data);
       } catch (err) {
-        console.error("Error:", err)
+        console.error("Error:", err);
       }
-    }
+    };
 
     if (activeTab === "users") {
-      fetchUsers()
+      fetchUsers();
     }
-  }, [activeTab])
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/visits/get-all-visit", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-            "Content-Type": "application/json",
-          },
-        })
+        const res = await fetch(
+          "http://localhost:5001/api/v1/visits/get-all-visit",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
-          throw new Error("Failed to fetch visits")
+          throw new Error("Failed to fetch visits");
         }
 
-        const data = await res.json()
-        console.log("Visits data:", data)
+        const data = await res.json();
+        console.log("Visits data:", data);
 
-        setVisitsData(data)
+        setVisitsData(data);
       } catch (err) {
-        console.error("Error fetching visits:", err)
+        console.error("Error fetching visits:", err);
       }
-    }
+    };
 
     if (activeTab === "visits") {
-      fetchVisits()
+      fetchVisits();
     }
-  }, [activeTab])
+  }, [activeTab]);
 
   // Fetch staff members for the edit form
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/admin/all-staff", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-            "Content-Type": "application/json",
-          },
-        })
+        const res = await fetch(
+          "http://localhost:5001/api/v1/admin/all-staff",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
-          throw new Error("Failed to fetch staff members")
+          throw new Error("Failed to fetch staff members");
         }
 
-        const data = await res.json()
-        setStaffMembers(data.data || [])
+        const data = await res.json();
+        setStaffMembers(data.data || []);
       } catch (err) {
-        console.error("Error fetching staff members:", err)
-        toast.error("Failed to load staff members")
+        console.error("Error fetching staff members:", err);
+        toast.error("Failed to load staff members");
       }
-    }
+    };
 
     if (isEditVisitDialogOpen) {
-      fetchStaffMembers()
+      fetchStaffMembers();
     }
-  }, [isEditVisitDialogOpen])
+  }, [isEditVisitDialogOpen]);
 
   // Filter users based on search term
-  const [roleFilter, setRoleFilter] = useState<string>("all")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const filteredUsers = userData.filter((user) => {
     // Filter by search term
     const matchesSearch =
       user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user._id.includes(searchTerm)
+      user._id.includes(searchTerm);
 
     // Filter by role
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
     // Filter by status
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
 
-    return matchesSearch && matchesRole && matchesStatus
-  })
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   // Filter visits based on search term and filters
   const filteredVisits =
@@ -502,343 +566,381 @@ export default function DashboardPage() {
       // Filter by search term
       const matchesSearch =
         visit.address.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
-        visit.client.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
-        (visit.staff?.fullname && visit.staff.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase())) ||
-        visit._id.includes(visitSearchTerm)
+        visit.client.fullname
+          .toLowerCase()
+          .includes(visitSearchTerm.toLowerCase()) ||
+        (visit.staff?.fullname &&
+          visit.staff.fullname
+            .toLowerCase()
+            .includes(visitSearchTerm.toLowerCase())) ||
+        visit._id.includes(visitSearchTerm);
 
       // Filter by status
-      const matchesStatus = visitStatusFilter === "all" || visit.status === visitStatusFilter
+      const matchesStatus =
+        visitStatusFilter === "all" || visit.status === visitStatusFilter;
 
       // Filter by date (simplified for now)
-      let matchesDate = true
+      let matchesDate = true;
       if (visitDateFilter === "today") {
-        const today = new Date().toISOString().split("T")[0]
-        matchesDate = visit.date.includes(today)
+        const today = new Date().toISOString().split("T")[0];
+        matchesDate = visit.date.includes(today);
       } else if (visitDateFilter === "thisweek") {
-        const now = new Date()
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-        const endOfWeek = new Date(now.setDate(now.getDate() + 6))
-        const visitDate = new Date(visit.date)
-        matchesDate = visitDate >= startOfWeek && visitDate <= endOfWeek
+        const now = new Date();
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const endOfWeek = new Date(now.setDate(now.getDate() + 6));
+        const visitDate = new Date(visit.date);
+        matchesDate = visitDate >= startOfWeek && visitDate <= endOfWeek;
       } else if (visitDateFilter === "thismonth") {
-        const now = new Date()
-        const currentMonth = now.getMonth()
-        const currentYear = now.getFullYear()
-        const visitDate = new Date(visit.date)
-        matchesDate = visitDate.getMonth() === currentMonth && visitDate.getFullYear() === currentYear
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const visitDate = new Date(visit.date);
+        matchesDate =
+          visitDate.getMonth() === currentMonth &&
+          visitDate.getFullYear() === currentYear;
       }
 
-      return matchesSearch && matchesStatus && matchesDate
-    }) || []
+      return matchesSearch && matchesStatus && matchesDate;
+    }) || [];
 
   // Get status class for styling
   const getStatusClass = (status: string) => {
     switch (status) {
       case "active":
       case "Active":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800";
       case "inactive":
       case "Inactive":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800";
       case "Scheduled":
       case "scheduled":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800";
       case "In Progress":
       case "in progress":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-yellow-100 text-yellow-800";
       case "Complete":
       case "complete":
       case "completed":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800";
       case "Cancelled":
       case "cancelled":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800";
       case "Confirm":
       case "confirm":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800";
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   // Get calendar day class for styling
   const getCalendarDayClass = (status?: string) => {
     switch (status) {
       case "success":
-        return "bg-green-100"
+        return "bg-green-100";
       case "cancelled":
-        return "bg-red-100"
+        return "bg-red-100";
       case "pending":
-        return "bg-yellow-100"
+        return "bg-yellow-100";
       case "confirmed":
-        return "bg-blue-100"
+        return "bg-blue-100";
       default:
-        return ""
+        return "";
     }
-  }
+  };
 
   const handleDeleteClick = (userId: string) => {
-    setSelectedUserId(userId)
-    setIsDeleteDialogOpen(true)
-  }
+    setSelectedUserId(userId);
+    setIsDeleteDialogOpen(true);
+  };
 
   const handleEditClick = (user: UserData) => {
-    setSelectedUserId(user._id)
+    setSelectedUserId(user._id);
     setEditUserData({
       fullname: user.fullname,
       email: user.email,
       password: "",
       role: user.role as "admin" | "client" | "staff",
-    })
-    setIsEditDialogOpen(true)
-  }
+    });
+    setIsEditDialogOpen(true);
+  };
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/delete-user/${selectedUserId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/admin/delete-user/${selectedUserId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to delete user")
+        throw new Error("Failed to delete user");
       }
 
       // Update the user list after successful deletion
-      setUserData(userData.filter((user) => user._id !== selectedUserId))
-      toast.success("User deleted successfully")
+      setUserData(userData.filter((user) => user._id !== selectedUserId));
+      toast.success("User deleted successfully");
     } catch (error) {
-      console.error("Error deleting user:", error)
-      toast.error("Failed to delete user")
+      console.error("Error deleting user:", error);
+      toast.error("Failed to delete user");
     } finally {
-      setIsDeleteDialogOpen(false)
+      setIsDeleteDialogOpen(false);
     }
-  }
+  };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/update-user/${selectedUserId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editUserData),
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/admin/update-user/${selectedUserId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editUserData),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to update user")
+        throw new Error("Failed to update user");
       }
 
       // Update the user list with the edited user
-      setUserData(userData.map((user) => (user._id === selectedUserId ? { ...user, ...editUserData } : user)))
+      setUserData(
+        userData.map((user) =>
+          user._id === selectedUserId ? { ...user, ...editUserData } : user
+        )
+      );
 
-      toast.success("User updated successfully")
+      toast.success("User updated successfully");
     } catch (error) {
-      console.error("Error updating user:", error)
-      toast.error("Failed to update user")
+      console.error("Error updating user:", error);
+      toast.error("Failed to update user");
     } finally {
-      setIsEditDialogOpen(false)
+      setIsEditDialogOpen(false);
     }
-  }
+  };
 
   const handleViewVisit = async (visitId: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/get-specific-visit/${visitId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/visits/get-specific-visit/${visitId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch visit details")
+        throw new Error("Failed to fetch visit details");
       }
 
-      const data = await response.json()
-      setSpecificVisit(data.data || data)
-      setIsViewDialogOpen(true)
+      const data = await response.json();
+      setSpecificVisit(data.data || data);
+      setIsViewDialogOpen(true);
     } catch (error) {
-      console.error("Error fetching visit details:", error)
-      toast.error("Failed to fetch visit details")
+      console.error("Error fetching visit details:", error);
+      toast.error("Failed to fetch visit details");
     }
-  }
+  };
 
   const handleDeleteVisit = (visitId: string) => {
-    setSelectedVisitId(visitId)
-    setIsDeleteVisitDialogOpen(true)
-  }
+    setSelectedVisitId(visitId);
+    setIsDeleteVisitDialogOpen(true);
+  };
 
   const confirmDeleteVisit = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/issues/delete-visit/${selectedVisitId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/visits/issues/delete-visit/${selectedVisitId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to delete visit")
+        throw new Error("Failed to delete visit");
       }
 
       // Update the visits list after successful deletion
       if (visitsData) {
         setVisitsData({
           ...visitsData,
-          data: visitsData.data.filter((visit) => visit._id !== selectedVisitId),
-        })
+          data: visitsData.data.filter(
+            (visit) => visit._id !== selectedVisitId
+          ),
+        });
       }
-      toast.success("Visit deleted successfully")
+      toast.success("Visit deleted successfully");
     } catch (error) {
-      console.error("Error deleting visit:", error)
-      toast.error("Failed to delete visit")
+      console.error("Error deleting visit:", error);
+      toast.error("Failed to delete visit");
     } finally {
-      setIsDeleteVisitDialogOpen(false)
+      setIsDeleteVisitDialogOpen(false);
     }
-  }
+  };
 
   // Handle edit visit button click
   const handleEditVisit = (visit: VisitData) => {
-    setSelectedVisitId(visit._id)
+    setSelectedVisitId(visit._id);
     setEditVisitData({
       staff: visit.staff?._id || "",
       type: visit.type || "routine check",
       notes: visit.notes || "",
-    })
-    setIsEditVisitDialogOpen(true)
-  }
+    });
+    setIsEditVisitDialogOpen(true);
+  };
 
   // Handle edit visit form submission
   const handleEditVisitSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/update-visit/${selectedVisitId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editVisitData),
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/visits/update-visit/${selectedVisitId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editVisitData),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to update visit")
+        throw new Error("Failed to update visit");
       }
 
       // Refresh visits data after update
-      const res = await fetch("http://localhost:5001/api/v1/visits/get-all-visit", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-      })
+      const res = await fetch(
+        "http://localhost:5001/api/v1/visits/get-all-visit",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (res.ok) {
-        const data = await res.json()
-        setVisitsData(data)
+        const data = await res.json();
+        setVisitsData(data);
       }
 
-      toast.success("Visit updated successfully")
+      toast.success("Visit updated successfully");
     } catch (error) {
-      console.error("Error updating visit:", error)
-      toast.error("Failed to update visit")
+      console.error("Error updating visit:", error);
+      toast.error("Failed to update visit");
     } finally {
-      setIsEditVisitDialogOpen(false)
+      setIsEditVisitDialogOpen(false);
     }
-  }
+  };
 
   // Format date for display
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString)
-      return date.toLocaleDateString()
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
     } catch (error) {
-      console.error("Error formatting date:", error)
-      return dateString
+      console.error("Error formatting date:", error);
+      return dateString;
     }
-  }
+  };
 
   // Extract time from date for display
   const extractTime = (dateString: string) => {
     try {
-      const date = new Date(dateString)
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      const date = new Date(dateString);
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     } catch (error) {
-      console.error("Error extracting time:", error)
-      return ""
+      console.error("Error extracting time:", error);
+      return "";
     }
-  }
+  };
 
   const fetchRevenueData = async (range: string) => {
-    setIsRevenueLoading(true)
+    setIsRevenueLoading(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/metrics/revenue-growth?range=${range}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(
+        `http://localhost:5001/api/v1/admin/metrics/revenue-growth?range=${range}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`)
+        throw new Error(`API request failed with status ${response.status}`);
       }
-      const data: RevenueGrowthResponse = await response.json()
-      setRevenueData(data.data)
+      const data: RevenueGrowthResponse = await response.json();
+      setRevenueData(data.data);
     } catch (err) {
-      console.error("Error fetching revenue data:", err)
-      toast.error("Failed to load revenue data")
+      console.error("Error fetching revenue data:", err);
+      toast.error("Failed to load revenue data");
     } finally {
-      setIsRevenueLoading(false)
+      setIsRevenueLoading(false);
     }
-  }
+  };
 
   const exportToPDF = async () => {
     if (chartRef.current) {
       try {
-        toast.info("Generating PDF...")
-        const canvas = await html2canvas(chartRef.current)
-        const imgData = canvas.toDataURL("image/png")
-        const pdf = new jsPDF("l", "mm", "a4")
-        const imgProps = pdf.getImageProperties(imgData)
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
-        pdf.save("revenue-growth.pdf")
-        toast.success("PDF downloaded successfully")
+        toast.info("Generating PDF...");
+        const canvas = await html2canvas(chartRef.current);
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("l", "mm", "a4");
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save("revenue-growth.pdf");
+        toast.success("PDF downloaded successfully");
       } catch (error) {
-        console.error("Error generating PDF:", error)
-        toast.error("Failed to generate PDF")
+        console.error("Error generating PDF:", error);
+        toast.error("Failed to generate PDF");
       }
     }
-  }
+  };
 
   const getTimeRangeParam = (timeframe: string) => {
     switch (timeframe) {
       case "12months":
-        return "1y"
-     
+        return "1y";
+
       case "30days":
-        return "30d"
+        return "30d";
       case "7days":
-        return "7d"
+        return "7d";
       default:
-        return "1y"
+        return "1y";
     }
-  }
+  };
 
   useEffect(() => {
     if (activeTab === "overview") {
-      fetchRevenueData(getTimeRangeParam(chartTimeframe))
+      fetchRevenueData(getTimeRangeParam(chartTimeframe));
     }
-  }, [activeTab, chartTimeframe])
+  }, [activeTab, chartTimeframe]);
 
   return (
     <div className="p-4 ">
@@ -846,29 +948,42 @@ export default function DashboardPage() {
       <p className="mb-6">Admin Dashboard</p>
 
       {error && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
+        <div
+          className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4"
+          role="alert"
+        >
           <p>{error}</p>
         </div>
       )}
 
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        defaultValue="overview"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
         <div className="bg-white rounded-full p-1 mb-6 inline-flex">
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "overview" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "users" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "visits" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               Visits
             </TabsTrigger>
@@ -889,7 +1004,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metrics.totalVisits}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {metrics.totalVisits}
+                  </div>
                   {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
@@ -905,7 +1022,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metrics.activeUsers}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {metrics.activeUsers}
+                  </div>
                   {/* <div className="text-sm text-green-500">+ 36% ↑</div> */}
                 </div>
               </CardContent>
@@ -921,7 +1040,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metrics.pendingVisits}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {metrics.pendingVisits}
+                  </div>
                   {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
@@ -936,9 +1057,13 @@ export default function DashboardPage() {
                     <CardTitle>Visits & Revenue Trends</CardTitle>
                     <div className="flex gap-1">
                       <Button
-                        variant={chartTimeframe === "12months" ? "default" : "outline"}
+                        variant={
+                          chartTimeframe === "12months" ? "default" : "outline"
+                        }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "12months" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
@@ -952,17 +1077,25 @@ export default function DashboardPage() {
                         6 Months
                       </Button> */}
                       <Button
-                        variant={chartTimeframe === "30days" ? "default" : "outline"}
+                        variant={
+                          chartTimeframe === "30days" ? "default" : "outline"
+                        }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "30days" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
                       </Button>
                       <Button
-                        variant={chartTimeframe === "7days" ? "default" : "outline"}
+                        variant={
+                          chartTimeframe === "7days" ? "default" : "outline"
+                        }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "7days" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -983,13 +1116,17 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="mt-4" ref={chartRef}>
                     <div className="mb-4">
-                      <div className="text-xs text-gray-500">Revenue Growth</div>
+                      <div className="text-xs text-gray-500">
+                        Revenue Growth
+                      </div>
                       <div className="text-xl font-bold">
                         {isRevenueLoading
                           ? "Loading..."
                           : revenueData.length > 0
-                            ? `$${revenueData[revenueData.length - 1]?.revenue.toLocaleString()}`
-                            : "$0"}
+                          ? `$${revenueData[
+                              revenueData.length - 1
+                            ]?.revenue.toLocaleString()}`
+                          : "$0"}
                       </div>
                     </div>
                     <div className="h-64">
@@ -1000,26 +1137,39 @@ export default function DashboardPage() {
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={revenueData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
                             <XAxis
                               dataKey="date"
                               axisLine={false}
                               tickLine={false}
                               tickFormatter={(value) => {
-                                const date = new Date(value)
-                                return `${date.toLocaleString("default", { month: "short" })}`
+                                const date = new Date(value);
+                                return `${date.toLocaleString("default", {
+                                  month: "short",
+                                })}`;
                               }}
                             />
                             <YAxis
                               axisLine={false}
                               tickLine={false}
-                              tickFormatter={(value) => `$${value.toLocaleString()}`}
+                              tickFormatter={(value) =>
+                                `$${value.toLocaleString()}`
+                              }
                             />
                             <Tooltip
-                              formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
+                              formatter={(value) => [
+                                `$${Number(value).toLocaleString()}`,
+                                "Revenue",
+                              ]}
                               labelFormatter={(label) => {
-                                const date = new Date(label)
-                                return `${date.toLocaleString("default", { month: "long", year: "numeric" })}`
+                                const date = new Date(label);
+                                return `${date.toLocaleString("default", {
+                                  month: "long",
+                                  year: "numeric",
+                                })}`;
                               }}
                             />
                             <Line
@@ -1028,7 +1178,12 @@ export default function DashboardPage() {
                               stroke="#6366f1"
                               strokeWidth={2}
                               dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
-                              activeDot={{ r: 6, fill: "#4f46e5", stroke: "#c7d2fe", strokeWidth: 2 }}
+                              activeDot={{
+                                r: 6,
+                                fill: "#4f46e5",
+                                stroke: "#c7d2fe",
+                                strokeWidth: 2,
+                              }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
@@ -1052,11 +1207,18 @@ export default function DashboardPage() {
                       {/* <div>Last Login</div> */}
                     </div>
                     {recetdata?.data.map((activity, index) => (
-                      <div key={index} className="grid grid-cols-3 items-center">
-                        <div className="text-sm font-medium">{activity?.user?.fullname}</div>
+                      <div
+                        key={index}
+                        className="grid grid-cols-3 items-center"
+                      >
+                        <div className="text-sm font-medium">
+                          {activity?.user?.fullname}
+                        </div>
                         <div className="text-sm">{activity?.plan?.name}</div>
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs `}>{activity?.plan?.price}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs `}>
+                            {activity?.plan?.price}
+                          </span>
                         </div>
                         {/* <div className="text-sm">{activity.lastLogin}</div> */}
                       </div>
@@ -1096,7 +1258,9 @@ export default function DashboardPage() {
                       </Select>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">Lorem ipsum dolor sit amet</div>
+                  <div className="text-xs text-gray-500">
+                    Lorem ipsum dolor sit amet
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-7 gap-1 text-center mb-2">
@@ -1109,25 +1273,32 @@ export default function DashboardPage() {
                     <div className="text-sm font-medium">Sat</div>
                   </div>
                   {calendarDays.map((week, weekIndex) => (
-                    <div key={weekIndex} className="grid grid-cols-7 gap-1 mb-1">
+                    <div
+                      key={weekIndex}
+                      className="grid grid-cols-7 gap-1 mb-1"
+                    >
                       {week.map((day, dayIndex) => (
                         <div
                           key={dayIndex}
-                          className={`p-2 rounded-md text-center relative ${getCalendarDayClass(day.status)}`}
+                          className={`p-2 rounded-md text-center relative ${getCalendarDayClass(
+                            day.status
+                          )}`}
                         >
                           <div
                             className={
                               day.day === 13 || day.day === 21
                                 ? "text-red-500"
                                 : day.day === 30
-                                  ? "text-yellow-500"
-                                  : ""
+                                ? "text-yellow-500"
+                                : ""
                             }
                           >
                             {day.day}
                           </div>
                           {day.hasVisit && (
-                            <div className="mt-1 bg-blue-600 text-white text-xs p-1 rounded">{day.visitTime} Visit</div>
+                            <div className="mt-1 bg-blue-600 text-white text-xs p-1 rounded">
+                              {day.visitTime} Visit
+                            </div>
                           )}
                         </div>
                       ))}
@@ -1160,23 +1331,35 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-center">
                     <CardTitle>Notifications</CardTitle>
                   </div>
-                  <div className="text-xs text-gray-500">Lorem ipsum dolor sit amet</div>
+                  <div className="text-xs text-gray-500">
+                    Lorem ipsum dolor sit amet
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {notifications.map((notification, index) => (
                       <div key={index} className="flex justify-between">
                         <div>
-                          <div className="text-sm font-medium">{notification.message}</div>
-                          <div className="text-xs text-gray-500">{notification.time}</div>
+                          <div className="text-sm font-medium">
+                            {notification.message}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {notification.time}
+                          </div>
                         </div>
                         <div className="text-xs text-gray-500">
-                          {notification.time.includes("h") ? notification.time : ""}
+                          {notification.time.includes("h")
+                            ? notification.time
+                            : ""}
                         </div>
                       </div>
                     ))}
                     <div className="flex justify-end mt-4">
-                      <Button variant="ghost" size="sm" className="text-xs flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs flex items-center"
+                      >
                         See All Notifications
                         <ChevronRight className="h-3 w-3 ml-1" />
                       </Button>
@@ -1202,7 +1385,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metrics.activeUsers}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {metrics.activeUsers}
+                  </div>
                   {/* <div className="text-sm text-green-500">+ 36% ↑</div> */}
                 </div>
               </CardContent>
@@ -1217,7 +1402,9 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">{metrics.totalSecurityStaff}</div>
+                <div className="text-4xl font-bold text-navy-900">
+                  {metrics.totalSecurityStaff}
+                </div>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -1230,7 +1417,9 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">{metrics.totalAdmin}</div>
+                <div className="text-4xl font-bold text-navy-900">
+                  {metrics.totalAdmin}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1293,17 +1482,31 @@ export default function DashboardPage() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.role}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(user.status)}`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                              user.status
+                            )}`}
+                          >
                             {user.status}
                           </span>
                         </TableCell>
-                        <TableCell>{new Date(user.lastActive).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {new Date(user.lastActive).toLocaleDateString()}
+                        </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(user)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(user)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user._id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteClick(user._id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1331,7 +1534,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{matricsData?.activeUsersCount}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {matricsData?.activeUsersCount}
+                  </div>
                   {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
@@ -1346,7 +1551,9 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">{matricsData?.completedVisitCount}</div>
+                <div className="text-4xl font-bold text-navy-900">
+                  {matricsData?.completedVisitCount}
+                </div>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -1360,7 +1567,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-navy-900">{matricsData?.confirmedVisitCount}</div>
+                  <div className="text-4xl font-bold text-navy-900">
+                    {matricsData?.confirmedVisitCount}
+                  </div>
                   {/* <div className="text-sm text-gray-600">Date : {new Date().toLocaleDateString()}</div> */}
                 </div>
               </CardContent>
@@ -1401,7 +1610,9 @@ export default function DashboardPage() {
                   <SelectItem value="thismonth">This Month</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-[#091057] hover:bg-[#091057]/80">Schedule Visit</Button>
+              <Button className="bg-[#091057] hover:bg-[#091057]/80">
+                Schedule Visit
+              </Button>
             </div>
           </div>
 
@@ -1428,23 +1639,41 @@ export default function DashboardPage() {
                         <TableCell>{extractTime(visit.date)}</TableCell>
                         <TableCell>{visit.address}</TableCell>
                         <TableCell>{visit.client.fullname}</TableCell>
-                        <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}>
+                          {visit.staff?.fullname || "Not Assigned"}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                              visit.status
+                            )}`}
+                          >
                             {visit.status}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" onClick={() => handleEditVisit(visit)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditVisit(visit)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteVisit(visit._id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteVisit(visit._id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleViewVisit(visit._id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleViewVisit(visit._id)}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1471,11 +1700,15 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this user? This action cannot be undone.
+              Are you sure you want to delete this user? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex space-x-2 justify-end">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
@@ -1499,7 +1732,12 @@ export default function DashboardPage() {
                 <Input
                   id="fullname"
                   value={editUserData.fullname}
-                  onChange={(e) => setEditUserData({ ...editUserData, fullname: e.target.value })}
+                  onChange={(e) =>
+                    setEditUserData({
+                      ...editUserData,
+                      fullname: e.target.value,
+                    })
+                  }
                   required
                 />
               </div>
@@ -1509,7 +1747,9 @@ export default function DashboardPage() {
                   id="email"
                   type="email"
                   value={editUserData.email}
-                  onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                  onChange={(e) =>
+                    setEditUserData({ ...editUserData, email: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -1519,7 +1759,12 @@ export default function DashboardPage() {
                   id="password"
                   type="password"
                   value={editUserData.password}
-                  onChange={(e) => setEditUserData({ ...editUserData, password: e.target.value })}
+                  onChange={(e) =>
+                    setEditUserData({
+                      ...editUserData,
+                      password: e.target.value,
+                    })
+                  }
                   placeholder="Leave blank to keep current password"
                 />
               </div>
@@ -1554,7 +1799,9 @@ export default function DashboardPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Visit Details</DialogTitle>
-            <DialogDescription>Detailed information about the selected visit</DialogDescription>
+            <DialogDescription>
+              Detailed information about the selected visit
+            </DialogDescription>
           </DialogHeader>
           {specificVisit ? (
             <div className="grid gap-4 py-4">
@@ -1576,7 +1823,9 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-1">Date</h4>
-                  <p className="text-sm">{formatDate(specificVisit.date || "")}</p>
+                  <p className="text-sm">
+                    {formatDate(specificVisit.date || "")}
+                  </p>
                 </div>
               </div>
 
@@ -1588,14 +1837,22 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium mb-1">Status</h4>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(specificVisit.status || "")}`}>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                      specificVisit.status || ""
+                    )}`}
+                  >
                     {specificVisit.status}
                   </span>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-1">Payment</h4>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${specificVisit.isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      specificVisit.isPaid
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
                   >
                     {specificVisit.isPaid ? "Paid" : "Unpaid"}
                   </span>
@@ -1604,7 +1861,9 @@ export default function DashboardPage() {
 
               <div>
                 <h4 className="text-sm font-medium mb-1">Notes</h4>
-                <p className="text-sm">{specificVisit.notes || "No notes available"}</p>
+                <p className="text-sm">
+                  {specificVisit.notes || "No notes available"}
+                </p>
               </div>
 
               {specificVisit.issues && specificVisit.issues.length > 0 && (
@@ -1620,7 +1879,11 @@ export default function DashboardPage() {
                         <div>
                           <h5 className="text-xs font-medium">Type</h5>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs ${issue.type === "warning" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              issue.type === "warning"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
                           >
                             {issue.type}
                           </span>
@@ -1678,16 +1941,23 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Delete Visit Confirmation Dialog */}
-      <Dialog open={isDeleteVisitDialogOpen} onOpenChange={setIsDeleteVisitDialogOpen}>
+      <Dialog
+        open={isDeleteVisitDialogOpen}
+        onOpenChange={setIsDeleteVisitDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirm Visit Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this visit? This action cannot be undone.
+              Are you sure you want to delete this visit? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex space-x-2 justify-end">
-            <Button variant="outline" onClick={() => setIsDeleteVisitDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteVisitDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDeleteVisit}>
@@ -1698,7 +1968,10 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Edit Visit Dialog */}
-      <Dialog open={isEditVisitDialogOpen} onOpenChange={setIsEditVisitDialogOpen}>
+      <Dialog
+        open={isEditVisitDialogOpen}
+        onOpenChange={setIsEditVisitDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Visit</DialogTitle>
@@ -1710,7 +1983,9 @@ export default function DashboardPage() {
                 <Label htmlFor="staff">Staff</Label>
                 <Select
                   value={editVisitData.staff}
-                  onValueChange={(value) => setEditVisitData({ ...editVisitData, staff: value })}
+                  onValueChange={(value) =>
+                    setEditVisitData({ ...editVisitData, staff: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select staff member" />
@@ -1728,7 +2003,9 @@ export default function DashboardPage() {
                 <Label htmlFor="type">Visit Type</Label>
                 <Select
                   value={editVisitData.type}
-                  onValueChange={(value) => setEditVisitData({ ...editVisitData, type: value })}
+                  onValueChange={(value) =>
+                    setEditVisitData({ ...editVisitData, type: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select visit type" />
@@ -1746,7 +2023,12 @@ export default function DashboardPage() {
                 <Textarea
                   id="notes"
                   value={editVisitData.notes}
-                  onChange={(e) => setEditVisitData({ ...editVisitData, notes: e.target.value })}
+                  onChange={(e) =>
+                    setEditVisitData({
+                      ...editVisitData,
+                      notes: e.target.value,
+                    })
+                  }
                   placeholder="Add notes about this visit"
                   rows={4}
                 />
@@ -1759,5 +2041,5 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

@@ -1,5 +1,7 @@
-import { AuditLogsPage } from "@/components/visit-logs/audit-logs-page"
+import React from "react";
 
-export default function Page() {
-  return <AuditLogsPage />
-}
+const page = () => {
+  return <div>page</div>;
+};
+
+export default page;
