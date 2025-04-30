@@ -1,15 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Sidebar } from "./sidebar"
 import { UsersPage } from "./users-page"
-import { VisitsPage } from "./visits-page"
 import { AuditLogsPage } from "./audit-logs-page"
 import { PricingPage } from "./pricing-page"
 import { MediaPage } from "./media-page"
 import { ReportsPage } from "./reports-page"
-import { DashboardPage } from "./dashboard-page"
-
+import DashboardPage from "./dashboard-page"
+import { VisitPage } from "./visit-page"
+import { Sidebar } from "./ui/sidebar"
 type ActivePage = "dashboard" | "users" | "visits" | "media" | "reports" | "pricing" | "audit"
 
 export function Dashboard() {
@@ -22,7 +21,7 @@ export function Dashboard() {
       case "users":
         return <UsersPage />
       case "visits":
-        return <VisitsPage />
+        return <VisitPage />
       case "media":
         return <MediaPage />
       case "reports":
