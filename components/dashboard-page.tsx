@@ -56,6 +56,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import Image from "next/image";
+// import { useSession } from "next-auth/react";
 
 // Define types for our metrics data
 interface MetricsData {
@@ -377,7 +378,11 @@ export default function DashboardPage() {
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  console.log("matricsData", matricsData);
+  // const session = useSession()
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
+
+
+  // console.log("matricsData", token);
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -385,7 +390,7 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const response = await fetch(
-          "http://localhost:5001/api/v1/admin/metrics"
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics`
         );
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
@@ -421,26 +426,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchActivity = async () => {
       try {
-<<<<<<< HEAD
-        const res = await fetch("http://localhost:5001/api/v1/admin/metrics/recent-user-activity", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         })
-=======
-        const res = await fetch(
-          "http://localhost:5001/api/v1/admin/metrics/recent-user-activity",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
->>>>>>> ec6047f76d6851950b2d50c059ea2293fe6daa52
 
         if (!res.ok) {
           throw new Error("Failed to fetch");
@@ -461,10 +453,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/admin/all-user", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-user`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
@@ -488,10 +480,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/visits/get-all-visit", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         })
@@ -518,10 +510,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const res = await fetch("http://localhost:5001/api/v1/admin/all-staff", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         })
@@ -671,10 +663,10 @@ export default function DashboardPage() {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/delete-user/${selectedUserId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       })
@@ -697,10 +689,10 @@ export default function DashboardPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/update-user/${selectedUserId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(editUserData),
@@ -728,10 +720,10 @@ export default function DashboardPage() {
 
   const handleViewVisit = async (visitId: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/get-specific-visit/${visitId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       })
@@ -756,10 +748,10 @@ export default function DashboardPage() {
 
   const confirmDeleteVisit = async () => {
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/issues/delete-visit/${selectedVisitId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       })
@@ -801,10 +793,10 @@ export default function DashboardPage() {
   const handleEditVisitSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/update-visit/${selectedVisitId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`, {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(editVisitData),
@@ -815,10 +807,10 @@ export default function DashboardPage() {
       }
 
       // Refresh visits data after update
-      const res = await fetch("http://localhost:5001/api/v1/visits/get-all-visit", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       })
@@ -865,10 +857,10 @@ export default function DashboardPage() {
   const fetchRevenueData = async (range: string) => {
     setIsRevenueLoading(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/admin/metrics/revenue-growth?range=${range}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       })
@@ -1623,9 +1615,7 @@ export default function DashboardPage() {
                         <TableCell>{visit.address}</TableCell>
                         <TableCell>{visit?.client?.fullname}</TableCell>
                         <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
-                        <TableCell>
-                          {visit.staff?.fullname || "Not Assigned"}
-                        </TableCell>
+                       
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs ${getStatusClass(

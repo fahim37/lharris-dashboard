@@ -39,6 +39,11 @@ interface Visit {
   status: string;
 }
 
+interface Staff {
+  _id: string;
+  fullname: string;
+}
+
 export function VisitPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -49,22 +54,49 @@ export function VisitPage() {
   const [currentVisit, setCurrentVisit] = useState<Visit | null>(null);
   const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [addFormData, setAddFormData] = useState({
+    clientEmail: "",
+    staff: "",
+    address: "",
+    date: "",
+    time: "",
+    type: "",
+  });
+  const [editFormData, setEditFormData] = useState({
+    clientEmail: "",
+    staff: "",
+    address: "",
+    date: "",
+    time: "",
+    type: "",
+    notes: "",
+  });
 
-  // Fetch visits from API
+  // Fetch visits and staff from API
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/v1/visits/get-all-visit");
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
+        if (!token) throw new Error("No authentication token found");
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch visits");
         }
         const { data } = await response.json();
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const transformedVisits: Visit[] = data.map((visit: any) => ({
           id: visit._id,
           clientName: visit.client?.fullname || "N/A",
           staffName: visit.staff?.fullname || "Staff not assigned",
           date: visit.date,
-          type: visit.type,
+          type: visit.type || "N/A",
           status: visit.status,
         }));
         setVisits(transformedVisits);
@@ -74,8 +106,47 @@ export function VisitPage() {
       }
     };
 
+    const fetchStaff = async () => {
+      try {
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
+        if (!token) throw new Error("No authentication token found");
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch staff");
+        }
+        const { data } = await response.json();
+        setStaffList(data);
+      } catch (error) {
+        console.error("Error fetching staff:", error);
+        toast.error("Failed to load staff list");
+      }
+    };
+
     fetchVisits();
+    fetchStaff();
   }, []);
+
+  // Populate edit form when currentVisit changes
+  useEffect(() => {
+    if (currentVisit) {
+      const visitDate = new Date(currentVisit.date);
+      setEditFormData({
+        clientEmail: "nm.bdcalling@gmail.com",
+        staff: "6808d94166b86dee825b33d0",
+        address: "123 Elm Street, Springfield",
+        date: visitDate.toISOString().split("T")[0],
+        time: visitDate.toTimeString().slice(0, 5),
+        type: currentVisit.type,
+        notes: "",
+      });
+    }
+  }, [currentVisit]);
 
   const filteredVisits = visits.filter((visit) => {
     const matchesSearch =
@@ -89,66 +160,120 @@ export function VisitPage() {
   });
 
   const handleAddVisit = async () => {
+    if (!addFormData.clientEmail || !addFormData.staff || !addFormData.address || !addFormData.date || !addFormData.time || !addFormData.type) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     try {
-      const response = await fetch("http://localhost:5001/api/v1/visits/add-visit", {
+      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
+      if (!token) throw new Error("No authentication token found");
+
+      // Combine date and time into ISO string
+      const isoDateTime = new Date(`${addFormData.date}T${addFormData.time}:00Z`).toISOString();
+
+      const payload = {
+        clientEmail: addFormData.clientEmail,
+        staff: addFormData.staff,
+        address: addFormData.address,
+        date: isoDateTime,
+        type: addFormData.type,
+      };
+      console.log("Create visit payload:", payload);
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client: "client_id",
-          staff: "staff_id",
-          date: new Date().toISOString(),
-          type: "Follow-up",
-          status: "Scheduled",
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to add visit");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add visit");
+      }
       const newVisit = await response.json();
-      setVisits([...visits, {
-        id: newVisit._id,
-        clientName: newVisit.client?.fullname || "N/A",
-        staffName: newVisit.staff?.fullname || "Staff not assigned",
-        date: newVisit.date,
-        type: newVisit.type,
-        status: newVisit.status,
-      }]);
+      console.log("Create visit response:", newVisit);
+
+      // Map staff ID to fullname for display
+      const staffName = staffList.find((staff) => staff._id === newVisit.data.staff)?.fullname || "Staff not assigned";
+
+      setVisits([
+        ...visits,
+        {
+          id: newVisit.data._id,
+          clientName: "N/A", // Placeholder; fetch client fullname if needed
+          staffName,
+          date: newVisit.data.date,
+          type: newVisit.data.type || "N/A",
+          status: newVisit.data.status || "pending",
+        },
+      ]);
       toast.success("Visit added successfully");
       setIsAddVisitOpen(false);
+      setAddFormData({
+        clientEmail: "",
+        staff: "",
+        address: "",
+        date: "",
+        time: "",
+        type: "",
+      });
     } catch (error) {
       console.error("Error adding visit:", error);
-      toast.error("Failed to add visit");
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to add visit");
+      } else {
+        toast.error("Failed to add visit");
+      }
     }
   };
 
   const handleEditVisit = async () => {
     if (!currentVisit) return;
     try {
-      const response = await fetch(`http://localhost:5001/api/v1/visits/update-visit/${currentVisit.id}`, {
+      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
+      if (!token) throw new Error("No authentication token found");
+
+      // Combine date and time into ISO string
+      const isoDateTime = new Date(`${editFormData.date}T${editFormData.time}:00Z`).toISOString();
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          client: "client_id",
-          staff: "staff_id",
-          date: currentVisit.date,
-          type: currentVisit.type,
-          status: currentVisit.status,
+          clientEmail: editFormData.clientEmail,
+          staff: editFormData.staff,
+          address: editFormData.address,
+          date: isoDateTime,
+          type: editFormData.type,
+          notes: editFormData.notes,
         }),
       });
       if (!response.ok) throw new Error("Failed to update visit");
       const updatedVisit = await response.json();
-      setVisits(visits.map((visit) =>
-        visit.id === currentVisit.id
-          ? {
-            id: updatedVisit._id,
-            clientName: updatedVisit.client?.fullname || "N/A",
-            staffName: updatedVisit.staff?.fullname || "Staff not assigned",
-            date: updatedVisit.date,
-            type: updatedVisit.type,
-            status: updatedVisit.status,
-          }
-          : visit
-      ));
+      const staffName = staffList.find((staff) => staff._id === updatedVisit.data.staff)?.fullname || "Staff not assigned";
+      setVisits(
+        visits.map((visit) =>
+          visit.id === currentVisit.id
+            ? {
+              id: updatedVisit.data._id,
+              clientName: updatedVisit.data.client?.fullname || "N/A",
+              staffName,
+              date: updatedVisit.data.date,
+              type: updatedVisit.data.type || "N/A",
+              status: updatedVisit.data.status || "pending",
+            }
+            : visit
+        )
+      );
       toast.success("Visit updated successfully");
       setIsEditVisitOpen(false);
+      setCurrentVisit(null);
     } catch (error) {
       console.error("Error updating visit:", error);
       toast.error("Failed to update visit");
@@ -158,10 +283,10 @@ export function VisitPage() {
   const handleDeleteVisit = async () => {
     if (!visitToDelete) return;
     try {
-      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c"; // Adjust token retrieval as needed
+      const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
       if (!token) throw new Error("No authentication token found");
 
-      const response = await fetch(`http://localhost:5001/api/v1/visits/issues/delete-visit/${visitToDelete}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitToDelete}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -262,7 +387,9 @@ export function VisitPage() {
                     <TableCell>{visit.type}</TableCell>
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                          visit.status
+                        )}`}
                       >
                         {visit.status}
                       </span>
@@ -325,66 +452,99 @@ export function VisitPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="client" className="text-sm font-medium">
-                Client
+              <label htmlFor="clientEmail" className="text-sm font-medium">
+                Client Email
               </label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="annette">Annette Black</SelectItem>
-                  <SelectItem value="kristin">Kristin Watson</SelectItem>
-                  <SelectItem value="jenny">Jenny Wilson</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="date" className="text-sm font-medium">
-                Date
-              </label>
-              <Input id="date" type="date" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="time" className="text-sm font-medium">
-                Time
-              </label>
-              <Input id="time" type="time" />
+              <Input
+                id="clientEmail"
+                value={addFormData.clientEmail}
+                onChange={(e) =>
+                  setAddFormData({ ...addFormData, clientEmail: e.target.value })
+                }
+                placeholder="Enter client email"
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="staff" className="text-sm font-medium">
                 Staff
               </label>
-              <Select>
+              <Select
+                value={addFormData.staff}
+                onValueChange={(value) => {
+                  console.log("Selected staff ID:", value);
+                  setAddFormData({ ...addFormData, staff: value });
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Staff" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="guy">Guy Hawkins</SelectItem>
-                  <SelectItem value="darlene">Darlene Robertson</SelectItem>
-                  <SelectItem value="esther">Esther Howard</SelectItem>
+                  {staffList.map((staff) => (
+                    <SelectItem key={staff._id} value={staff._id}>
+                      {staff.fullname}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="address" className="text-sm font-medium">
+                Address
+              </label>
+              <Input
+                id="address"
+                value={addFormData.address}
+                onChange={(e) =>
+                  setAddFormData({ ...addFormData, address: e.target.value })
+                }
+                placeholder="Enter address"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="date" className="text-sm font-medium">
+                Date
+              </label>
+              <Input
+                id="date"
+                type="date"
+                value={addFormData.date}
+                onChange={(e) =>
+                  setAddFormData({ ...addFormData, date: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="time" className="text-sm font-medium">
+                Time
+              </label>
+              <Input
+                id="time"
+                type="time"
+                value={addFormData.time}
+                onChange={(e) =>
+                  setAddFormData({ ...addFormData, time: e.target.value })
+                }
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="visitType" className="text-sm font-medium">
                 Visit Type
               </label>
-              <Select>
+              <Select
+                value={addFormData.type}
+                onValueChange={(value) => {
+                  console.log("Selected visit type:", value);
+                  setAddFormData({ ...addFormData, type: value });
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Visit Type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="routine check">Routine Check</SelectItem>
                   <SelectItem value="Follow-up">Follow-up</SelectItem>
-                  <SelectItem value="Routine Check">Routine Check</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="notes" className="text-sm font-medium">
-                Notes
-              </label>
-              <Input id="notes" placeholder="Add notes..." />
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
@@ -478,20 +638,52 @@ export function VisitPage() {
           {currentVisit && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label htmlFor="edit-client" className="text-sm font-medium">
-                  Client
+                <label htmlFor="edit-clientEmail" className="text-sm font-medium">
+                  Client Email
                 </label>
-                <Select defaultValue={currentVisit.clientName}>
+                <Input
+                  id="edit-clientEmail"
+                  value={editFormData.clientEmail}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, clientEmail: e.target.value })
+                  }
+                  placeholder="Enter client email"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-staff" className="text-sm font-medium">
+                  Staff
+                </label>
+                <Select
+                  value={editFormData.staff}
+                  onValueChange={(value) =>
+                    setEditFormData({ ...editFormData, staff: value })
+                  }
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Client" />
+                    <SelectValue placeholder="Select Staff" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={currentVisit.clientName}>
-                      {currentVisit.clientName}
-                    </SelectItem>
-                    <SelectItem value="Other Client">Other Client</SelectItem>
+                    {staffList.map((staff) => (
+                      <SelectItem key={staff._id} value={staff._id}>
+                        {staff.fullname}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-address" className="text-sm font-medium">
+                  Address
+                </label>
+                <Input
+                  id="edit-address"
+                  value={editFormData.address}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, address: e.target.value })
+                  }
+                  placeholder="Enter address"
+                />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-date" className="text-sm font-medium">
@@ -500,7 +692,10 @@ export function VisitPage() {
                 <Input
                   id="edit-date"
                   type="date"
-                  defaultValue={new Date(currentVisit.date).toISOString().split("T")[0]}
+                  value={editFormData.date}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, date: e.target.value })
+                  }
                 />
               </div>
               <div className="grid gap-2">
@@ -510,36 +705,28 @@ export function VisitPage() {
                 <Input
                   id="edit-time"
                   type="time"
-                  defaultValue={new Date(currentVisit.date).toTimeString().slice(0, 5)}
+                  value={editFormData.time}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, time: e.target.value })
+                  }
                 />
-              </div>
-              <div className="grid gap-2">
-                <label htmlFor="edit-staff" className="text-sm font-medium">
-                  Staff
-                </label>
-                <Select defaultValue={currentVisit.staffName}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Staff" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={currentVisit.staffName}>
-                      {currentVisit.staffName}
-                    </SelectItem>
-                    <SelectItem value="Other Staff">Other Staff</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-visitType" className="text-sm font-medium">
                   Visit Type
                 </label>
-                <Select defaultValue={currentVisit.type}>
+                <Select
+                  value={editFormData.type}
+                  onValueChange={(value) =>
+                    setEditFormData({ ...editFormData, type: value })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Visit Type" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="routine check">Routine Check</SelectItem>
                     <SelectItem value="Follow-up">Follow-up</SelectItem>
-                    <SelectItem value="Routine Check">Routine Check</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -547,13 +734,24 @@ export function VisitPage() {
                 <label htmlFor="edit-notes" className="text-sm font-medium">
                   Notes
                 </label>
-                <Input id="edit-notes" placeholder="Add notes..." />
+                <Input
+                  id="edit-notes"
+                  value={editFormData.notes}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, notes: e.target.value })
+                  }
+                  placeholder="Add notes..."
+                />
               </div>
             </div>
           )}
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
-              <Button type="button" variant="outline">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCurrentVisit(null)}
+              >
                 Cancel
               </Button>
             </DialogClose>
@@ -581,7 +779,8 @@ export function VisitPage() {
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm">
-              Are you sure you want to delete this visit? This action cannot be undone.
+              Are you sure you want to delete this visit? This action cannot be
+              undone.
             </p>
           </div>
           <DialogFooter className="sm:justify-between">
