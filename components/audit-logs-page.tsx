@@ -1,14 +1,34 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { PageHeader } from "@/components/page-header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
-import { Eye, Download } from "lucide-react"
-import { toast } from "sonner"
+import { useState } from "react";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Eye, Download } from "lucide-react";
+import { toast } from "sonner";
 
 // Dummy data
 const logs = [
@@ -28,15 +48,15 @@ const logs = [
     activity: "Report Generation",
     status: "Failure",
   },
-]
+];
 
 interface Log {
-  id: string
-  timestamp: string
-  user: string
-  role: string
-  activity: string
-  status: string
+  id: string;
+  timestamp: string;
+  user: string;
+  role: string;
+  activity: string;
+  status: string;
 }
 
 export function AuditLogsPage() {
@@ -53,28 +73,30 @@ export function AuditLogsPage() {
     const matchesSearch =
       log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.activity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.id.includes(searchTerm)
-    const matchesUser = selectedUser ? log.user === selectedUser : true
-    const matchesActivity = selectedActivity ? log.activity === selectedActivity : true
-    const matchesStatus = selectedStatus ? log.status === selectedStatus : true
+      log.id.includes(searchTerm);
+    const matchesUser = selectedUser ? log.user === selectedUser : true;
+    const matchesActivity = selectedActivity
+      ? log.activity === selectedActivity
+      : true;
+    const matchesStatus = selectedStatus ? log.status === selectedStatus : true;
 
-    return matchesSearch && matchesUser && matchesActivity && matchesStatus
-  })
+    return matchesSearch && matchesUser && matchesActivity && matchesStatus;
+  });
 
   const handleExport = () => {
-    toast.success("Logs exported successfully")
-  }
+    toast.success("Logs exported successfully");
+  };
 
   const getStatusClass = (status: string) => {
     switch (status) {
       case "Successful":
-        return "status-success"
+        return "status-success";
       case "Failure":
-        return "status-failure"
+        return "status-failure";
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -98,20 +120,27 @@ export function AuditLogsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="Cameron Williamson">Cameron Williamson</SelectItem>
+                  <SelectItem value="Cameron Williamson">
+                    Cameron Williamson
+                  </SelectItem>
                   <SelectItem value="Floyd Miles">Floyd Miles</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="w-[200px]">
-              <Select value={selectedActivity} onValueChange={setSelectedActivity}>
+              <Select
+                value={selectedActivity}
+                onValueChange={setSelectedActivity}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Activity" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Activities</SelectItem>
                   <SelectItem value="User Login">User Login</SelectItem>
-                  <SelectItem value="Report Generation">Report Generation</SelectItem>
+                  <SelectItem value="Report Generation">
+                    Report Generation
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -127,7 +156,10 @@ export function AuditLogsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleExport} className="bg-[#0a1172] hover:bg-[#1a2182]">
+            <Button
+              onClick={handleExport}
+              className="bg-[#0a1172] hover:bg-[#1a2182]"
+            >
               <Download className="mr-2 h-4 w-4" /> Export
             </Button>
           </div>
@@ -154,7 +186,11 @@ export function AuditLogsPage() {
                     <TableCell>{log.role}</TableCell>
                     <TableCell>{log.activity}</TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(log.status)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                          log.status
+                        )}`}
+                      >
                         {log.status}
                       </span>
                     </TableCell>
@@ -164,8 +200,8 @@ export function AuditLogsPage() {
                         size="icon"
                         className="action-button"
                         onClick={() => {
-                          setCurrentLog(log)
-                          setIsLogDetailsOpen(true)
+                          setCurrentLog(log);
+                          setIsLogDetailsOpen(true);
                         }}
                       >
                         <Eye className="h-4 w-4" />
@@ -180,11 +216,20 @@ export function AuditLogsPage() {
           <div className="flex items-center justify-between mt-4 text-sm">
             <div>Showing 1 to 10 of 24 results</div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" disabled className="pagination-nav disabled">
+              <Button
+                variant="outline"
+                size="icon"
+                disabled
+                className="pagination-nav disabled"
+              >
                 <span className="sr-only">Previous page</span>
                 &lt;
               </Button>
-              <Button variant="outline" size="sm" className="pagination-item active">
+              <Button
+                variant="outline"
+                size="sm"
+                className="pagination-item active"
+              >
                 1
               </Button>
               <Button variant="outline" size="sm" className="pagination-item">
@@ -244,7 +289,11 @@ export function AuditLogsPage() {
             </div>
             <div className="grid grid-cols-[120px_1fr] gap-2">
               <span className="text-sm font-medium">Status:</span>
-              <span className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass("Successful")}`}>
+              <span
+                className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass(
+                  "Successful"
+                )}`}
+              >
                 Successful
               </span>
             </div>
@@ -259,5 +308,5 @@ export function AuditLogsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

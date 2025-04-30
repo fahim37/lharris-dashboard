@@ -64,7 +64,7 @@ export async function getRevenueGrowth() {
   return fetchAPI("/admin/metrics/revenue-growth");
 }
 
-// Visit management
+
 export async function createVisit(visitData: any) {
   return fetchAPI("/visits/admin/create-visit", {
     method: "POST",
