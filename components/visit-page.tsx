@@ -33,10 +33,13 @@ import { toast } from "sonner";
 interface Visit {
   id: string;
   clientName: string;
+  clientEmail: string;
   staffName: string;
   date: string;
   type: string;
   status: string;
+  notes?: string;
+  address: string;
 }
 
 interface Staff {
@@ -62,6 +65,7 @@ export function VisitPage() {
     date: "",
     time: "",
     type: "",
+    notes: "",
   });
   const [editFormData, setEditFormData] = useState({
     clientEmail: "",
@@ -90,14 +94,16 @@ export function VisitPage() {
           throw new Error("Failed to fetch visits");
         }
         const { data } = await response.json();
-        /* eslint-disable @typescript-eslint/no-explicit-any */
         const transformedVisits: Visit[] = data.map((visit: any) => ({
           id: visit._id,
           clientName: visit.client?.fullname || "N/A",
+          clientEmail: visit.clientEmail || visit.client?.email || "N/A",
           staffName: visit.staff?.fullname || "Staff not assigned",
           date: visit.date,
           type: visit.type || "N/A",
           status: visit.status,
+          notes: visit.notes || "",
+          address: visit.address || "N/A",
         }));
         setVisits(transformedVisits);
       } catch (error) {
@@ -137,22 +143,23 @@ export function VisitPage() {
     if (currentVisit) {
       const visitDate = new Date(currentVisit.date);
       setEditFormData({
-        clientEmail: "nm.bdcalling@gmail.com",
-        staff: "6808d94166b86dee825b33d0",
-        address: "123 Elm Street, Springfield",
+        clientEmail: currentVisit.clientEmail,
+        staff: staffList.find(staff => staff.fullname === currentVisit.staffName)?._id || "",
+        address: currentVisit.address,
         date: visitDate.toISOString().split("T")[0],
         time: visitDate.toTimeString().slice(0, 5),
         type: currentVisit.type,
-        notes: "",
+        notes: currentVisit.notes || "",
       });
     }
-  }, [currentVisit]);
+  }, [currentVisit, staffList]);
 
   const filteredVisits = visits.filter((visit) => {
     const matchesSearch =
       visit.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visit.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visit.id.toLowerCase().includes(searchTerm.toLowerCase());
+      visit.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      visit.clientEmail.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus;
 
@@ -169,7 +176,6 @@ export function VisitPage() {
       const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
       if (!token) throw new Error("No authentication token found");
 
-      // Combine date and time into ISO string
       const isoDateTime = new Date(`${addFormData.date}T${addFormData.time}:00Z`).toISOString();
 
       const payload = {
@@ -178,8 +184,8 @@ export function VisitPage() {
         address: addFormData.address,
         date: isoDateTime,
         type: addFormData.type,
+        notes: addFormData.notes,
       };
-      console.log("Create visit payload:", payload);
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit`, {
         method: "POST",
@@ -189,27 +195,28 @@ export function VisitPage() {
         },
         body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to add visit");
       }
-      const newVisit = await response.json();
-      console.log("Create visit response:", newVisit);
 
-      // Map staff ID to fullname for display
+      const newVisit = await response.json();
       const staffName = staffList.find((staff) => staff._id === newVisit.data.staff)?.fullname || "Staff not assigned";
 
-      setVisits([
-        ...visits,
-        {
-          id: newVisit.data._id,
-          clientName: "N/A", // Placeholder; fetch client fullname if needed
-          staffName,
-          date: newVisit.data.date,
-          type: newVisit.data.type || "N/A",
-          status: newVisit.data.status || "pending",
-        },
-      ]);
+      const transformedNewVisit: Visit = {
+        id: newVisit.data._id,
+        clientName: newVisit.data.client?.fullname || addFormData.clientEmail,
+        clientEmail: addFormData.clientEmail,
+        staffName,
+        date: newVisit.data.date,
+        type: newVisit.data.type || "N/A",
+        status: newVisit.data.status || "pending",
+        notes: newVisit.data.notes || "",
+        address: newVisit.data.address || addFormData.address,
+      };
+
+      setVisits([transformedNewVisit, ...visits]);
       toast.success("Visit added successfully");
       setIsAddVisitOpen(false);
       setAddFormData({
@@ -219,14 +226,11 @@ export function VisitPage() {
         date: "",
         time: "",
         type: "",
+        notes: "",
       });
     } catch (error) {
       console.error("Error adding visit:", error);
-      if (error instanceof Error) {
-        toast.error(error.message || "Failed to add visit");
-      } else {
-        toast.error("Failed to add visit");
-      }
+      toast.error(error instanceof Error ? error.message : "Failed to add visit");
     }
   };
 
@@ -236,7 +240,6 @@ export function VisitPage() {
       const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
       if (!token) throw new Error("No authentication token found");
 
-      // Combine date and time into ISO string
       const isoDateTime = new Date(`${editFormData.date}T${editFormData.time}:00Z`).toISOString();
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`, {
@@ -254,19 +257,24 @@ export function VisitPage() {
           notes: editFormData.notes,
         }),
       });
+
       if (!response.ok) throw new Error("Failed to update visit");
       const updatedVisit = await response.json();
       const staffName = staffList.find((staff) => staff._id === updatedVisit.data.staff)?.fullname || "Staff not assigned";
+
       setVisits(
         visits.map((visit) =>
           visit.id === currentVisit.id
             ? {
               id: updatedVisit.data._id,
-              clientName: updatedVisit.data.client?.fullname || "N/A",
+              clientName: updatedVisit.data.client?.fullname || editFormData.clientEmail,
+              clientEmail: editFormData.clientEmail,
               staffName,
               date: updatedVisit.data.date,
               type: updatedVisit.data.type || "N/A",
               status: updatedVisit.data.status || "pending",
+              notes: updatedVisit.data.notes || "",
+              address: updatedVisit.data.address || editFormData.address,
             }
             : visit
         )
@@ -293,9 +301,10 @@ export function VisitPage() {
           "Authorization": `Bearer ${token}`,
         },
       });
+
       if (!response.ok) throw new Error("Failed to delete visit");
       setVisits(visits.filter((visit) => visit.id !== visitToDelete));
-      toast.success(`Visit deleted successfully`);
+      toast.success("Visit deleted successfully");
       setIsDeleteConfirmOpen(false);
       setVisitToDelete(null);
     } catch (error) {
@@ -307,15 +316,15 @@ export function VisitPage() {
   };
 
   const getStatusClass = (status: string) => {
-    switch (status) {
-      case "Scheduled":
-        return "bg-blue-100 text-blue-800";
-      case "In Progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "Complete":
-        return "bg-green-100 text-green-800";
-      case "Canceled":
-        return "bg-red-100 text-red-800";
+    switch (status.toLowerCase()) {
+      case "complete":
+        return "bg-[#033618] text-white";
+      case "cancelled":
+        return "bg-[#E9BFBF] text-black";
+      case "confirmed":
+        return "bg-[#B3E9C9] text-black";
+      case "pending":
+        return "bg-[#F7E39F] text-black";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -343,7 +352,7 @@ export function VisitPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="complete">Complete</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -470,10 +479,9 @@ export function VisitPage() {
               </label>
               <Select
                 value={addFormData.staff}
-                onValueChange={(value) => {
-                  console.log("Selected staff ID:", value);
-                  setAddFormData({ ...addFormData, staff: value });
-                }}
+                onValueChange={(value) =>
+                  setAddFormData({ ...addFormData, staff: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Staff" />
@@ -532,10 +540,9 @@ export function VisitPage() {
               </label>
               <Select
                 value={addFormData.type}
-                onValueChange={(value) => {
-                  console.log("Selected visit type:", value);
-                  setAddFormData({ ...addFormData, type: value });
-                }}
+                onValueChange={(value) =>
+                  setAddFormData({ ...addFormData, type: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Visit Type" />
@@ -545,6 +552,19 @@ export function VisitPage() {
                   <SelectItem value="Follow-up">Follow-up</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <Input
+                id="notes"
+                value={addFormData.notes}
+                onChange={(e) =>
+                  setAddFormData({ ...addFormData, notes: e.target.value })
+                }
+                placeholder="Enter notes"
+              />
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
@@ -582,6 +602,14 @@ export function VisitPage() {
                 <span className="text-sm">{currentVisit.clientName}</span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Email:</span>
+                <span className="text-sm">{currentVisit.clientEmail || "N/A"}</span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
+                <span className="text-sm font-medium">Address:</span>
+                <span className="text-sm">{currentVisit.address}</span>
+              </div>
+              <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Date & Time:</span>
                 <span className="text-sm">
                   {new Date(currentVisit.date).toLocaleString("en-GB", {
@@ -610,7 +638,7 @@ export function VisitPage() {
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Notes:</span>
-                <span className="text-sm">No notes provided for this visit.</span>
+                <span className="text-sm">{currentVisit.notes || "No notes"}</span>
               </div>
             </div>
           )}
@@ -710,25 +738,12 @@ export function VisitPage() {
                     setEditFormData({ ...editFormData, time: e.target.value })
                   }
                 />
-              </div>
-              <div className="grid gap-2">
-                <label htmlFor="edit-visitType" className="text-sm font-medium">
-                  Visit Type
-                </label>
-                <Select
-                  value={editFormData.type}
-                  onValueChange={(value) =>
-                    setEditFormData({ ...editFormData, type: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Visit Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="routine check">Routine Check</SelectItem>
-                    <SelectItem value="Follow-up">Follow-up</SelectItem>
-                  </SelectContent>
-                </Select>
+                Polkadot (DOT) $7.75 +4.5%
+                Wrapped Bitcoin (WBTC) $83,984.53 +3.6%
+                Avalanche (AVAX) $39.65 +6.5%
+                NEAR Protocol (NEAR) $5.39 +7.8%
+                Internet Computer (ICP) $15.37 +7.4%
+
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-notes" className="text-sm font-medium">
