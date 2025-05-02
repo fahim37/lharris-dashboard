@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -10,13 +8,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Check, Plus, Pencil } from "lucide-react"
-import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans } from "@/lib/api"
+import { Check, Plus, Pencil, Trash } from "lucide-react"
+import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans, deletePlan, updatePlan } from "@/lib/api"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { get } from "http"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 interface Plan {
   _id: string
   name: string
   price: number
+  description: string
+  pack?: string
   addsOnServices?: Array<{
     _id: string
     addOn: string
@@ -26,21 +32,39 @@ interface Plan {
   }>
 }
 
+const formSchema = z.object({
+  name: z.string().min(2, { message: "Plan name must be at least 2 characters." }),
+  price: z.number().min(0, { message: "Price must be a positive number." }),
+  description: z.string().min(10, { message: "Description must be at least 10 characters." }),
+  pack: z.enum(["weekly", "monthly", "daily"]),
+})
+
+type FormData = z.infer<typeof formSchema>
+
+
 export function PricingPage() {
   const [isAddPackageOpen, setIsAddPackageOpen] = useState(false)
   const [isEditPackageOpen, setIsEditPackageOpen] = useState(false)
-  const [isAddDiscountOpen, setIsAddDiscountOpen] = useState(false)
-  const [isEditDiscountOpen, setIsEditDiscountOpen] = useState(false)
+  const [isDeletePackageOpen, setIsDeletePackageOpen] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState("")
   const [metrics, setMetrics] = useState({
     activePlans: 0,
     monthlyRevenue: 0,
     activeDiscounts: 0,
   })
   const [plans, setPlans] = useState<Plan[]>([])
-  const [newPlan, setNewPlan] = useState({
-    name: "",
-    price: 0,
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      price: 0,
+      description: "",
+      pack: "daily",
+    },
   })
+
+  console.log(metrics)
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -66,13 +90,12 @@ export function PricingPage() {
         toast.error("Failed to load billing metrics")
       }
     }
-
     fetchMetrics()
   }, [])
 
-  const handleAddPackage = async () => {
+  const handleAddPackage = async (data: FormData) => {
     try {
-      await addPlan(newPlan)
+      await addPlan(data)
       toast.success("Package added successfully")
       setIsAddPackageOpen(false)
       // Refresh plans
@@ -80,38 +103,51 @@ export function PricingPage() {
       if (plansRes.data && Array.isArray(plansRes.data)) {
         setPlans(plansRes.data)
       }
-      // Reset form
-      setNewPlan({
-        name: "",
-        price: 0,
-      })
+      form.reset()
     } catch (error) {
       console.error("Error adding plan:", error)
       toast.error("Failed to add package")
     }
   }
 
-  const handleEditPackage = () => {
-    toast.success("Package updated successfully")
-    setIsEditPackageOpen(false)
+  const handleDeletePlan = async () => {
+    try {
+      await deletePlan(selectedPlanId)
+      toast.success("Plan deleted successfully")
+      setIsDeletePackageOpen(false)
+      setPlans((prevPlans) => prevPlans.filter((plan) => plan._id !== selectedPlanId))
+      setSelectedPlanId("")
+    } catch (error) {
+      console.error("Error deleting plan:", error)
+      toast.error("Failed to delete plan")
+    }
   }
 
-  const handleAddDiscount = () => {
-    toast.success("Discount added successfully")
-    setIsAddDiscountOpen(false)
+  const handleEditPlan = async (data: FormData) => {
+    try {
+      await updatePlan(selectedPlanId, data)
+      toast.success("Plan updated successfully")
+      setIsEditPackageOpen(false)
+      // Refresh plans
+      const plansRes = await getAllPlans()
+      if (plansRes.data && Array.isArray(plansRes.data)) {
+        setPlans(plansRes.data)
+      }
+    } catch (error) {
+      console.error("Error updating plan:", error)
+      toast.error("Failed to update plan")
+    }
   }
 
-  const handleEditDiscount = () => {
-    toast.success("Discount updated successfully")
-    setIsEditDiscountOpen(false)
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target
-    setNewPlan((prev) => ({
-      ...prev,
-      [id]: id === "price" ? Number.parseFloat(value) : value,
-    }))
+  const handleEditClick = (plan: Plan) => {
+    setSelectedPlanId(plan._id)
+    form.reset({
+      name: plan.name,
+      price: plan.price,
+      description: plan.description,
+      pack: plan.pack as "weekly" | "monthly" | "daily",
+    })
+    setIsEditPackageOpen(true)
   }
 
   return (
@@ -127,7 +163,7 @@ export function PricingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{metrics.activePlans}</div>
+              <div className="text-3xl font-bold">{plans.length}</div>
             </CardContent>
           </Card>
 
@@ -141,59 +177,43 @@ export function PricingPage() {
               <div className="text-3xl font-bold">${metrics.monthlyRevenue}</div>
             </CardContent>
           </Card>
-
-          <Card className="bg-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-red-600 flex items-center">
-                <Check className="h-4 w-4 mr-1" /> Active Discounts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{metrics.activeDiscounts}</div>
-            </CardContent>
-          </Card>
         </div>
 
         <Tabs defaultValue="plans">
           <div className="flex justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="plans">Security Plans</TabsTrigger>
-              <TabsTrigger value="discounts">Discount Offers</TabsTrigger>
+              <TabsTrigger value="payment-history">Payment History</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button
-                variant="outline"
-                onClick={() => setIsAddDiscountOpen(true)}
-                className="hidden data-[state=active]:flex"
-                data-state={document.querySelector('[data-state="active"][value="discounts"]') ? "active" : "inactive"}
-              >
-                + Add Discount
-              </Button>
-              <Button
-                className="bg-[#0a1172] hover:bg-[#1a2182] hidden data-[state=active]:flex"
+                className="bg-[#0a1172] hover:bg-[#1a2182] data-[state=active]:flex"
                 data-state={document.querySelector('[data-state="active"][value="plans"]') ? "active" : "inactive"}
                 onClick={() => setIsAddPackageOpen(true)}
               >
-                + Add Package
+                + Add Plans
               </Button>
             </div>
           </div>
 
           <TabsContent value="plans" className="mt-0">
             <div className="bg-white rounded-md shadow-sm p-6">
+              <div className="">
+                <h3 className="text-lg font-semibold pb-7 pl-1 text-[#18181B]">Plans</h3>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {plans.length > 0 ? (
                   plans.map((plan) => (
                     <Card key={plan._id}>
                       <CardHeader className="pb-2">
                         <CardTitle className="flex justify-between">
-                          <span>{plan.name}</span>
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Popular</span>
+                          <span className="capitalize text-2xl pb-7">{plan.name}</span>
                         </CardTitle>
-                        <CardDescription>${plan.price} / month</CardDescription>
+                        <CardDescription className="text-lg font-semibold text-[#000000] capitalize">${plan.price} / {plan.pack}</CardDescription>
                       </CardHeader>
                       <CardContent className="pb-2">
-                        <ul className="space-y-2 text-sm">
+                        <ul className="space-y-2 text-sm pb-2">
+                          <li className="text-base pb-1">{plan.description}</li>
                           {plan.addsOnServices &&
                             plan.addsOnServices.map((addon) => (
                               <li key={addon._id} className="flex items-center">
@@ -209,56 +229,39 @@ export function PricingPage() {
                           )}
                         </ul>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <Button variant="outline" size="sm" onClick={() => setIsEditPackageOpen(true)}>
+                      <CardFooter className="flex items-center gap-2 text-base">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setIsEditPackageOpen(true)
+                            setSelectedPlanId(plan._id)
+                          }
+                          }
+                          className="bg-[#091057] text-[#F7E39F]"
+                        >
                           Edit
                         </Button>
-                        <Button className="bg-[#0a1172] hover:bg-[#1a2182]" size="sm">
-                          View Details
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setIsDeletePackageOpen(true)
+                            setSelectedPlanId(plan._id)
+                          }}
+                          className="hover:bg-[#1a2182] bg-transparent border border-[#091057] text-[#091057] hover:text-[#F7E39F]"
+                        >
+                          Delete
                         </Button>
                       </CardFooter>
                     </Card>
                   ))
                 ) : (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex justify-between">
-                        <span>Plan 1</span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Popular</span>
-                      </CardTitle>
-                      <CardDescription>$49 / month</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center">
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Basic security monitoring
-                        </li>
-                        <li className="flex items-center">
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Weekly reports
-                        </li>
-                        <li className="flex items-center">
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Email alerts
-                        </li>
-                      </ul>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Button variant="outline" size="sm" onClick={() => setIsEditPackageOpen(true)}>
-                        Edit
-                      </Button>
-                      <Button className="bg-[#0a1172] hover:bg-[#1a2182]" size="sm">
-                        View Details
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                  <div>No plans found</div>
                 )}
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="discounts" className="mt-0">
+          <TabsContent value="payment-history" className="mt-0">
             <div className="bg-white rounded-md shadow-sm p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
@@ -343,51 +346,89 @@ export function PricingPage() {
               <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
                 <Plus className="h-5 w-5" />
               </div>
-              Add New Package
+              Add New Plan
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Package Name
-              </label>
-              <Input id="name" placeholder="Enter package name" value={newPlan.name} onChange={handleInputChange} />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="price" className="text-sm font-medium">
-                Price
-              </label>
-              <Input
-                id="price"
-                placeholder="$0.00"
-                type="number"
-                value={newPlan.price || ""}
-                onChange={handleInputChange}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAddPackage)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter package name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="package-description" className="text-sm font-medium">
-                Description
-              </label>
-              <Input id="package-description" placeholder="Enter description" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="package-features" className="text-sm font-medium">
-                Features
-              </label>
-              <Input id="package-features" placeholder="Enter features (comma separated)" />
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="button" className="bg-[#0a1172] hover:bg-[#1a2182]" onClick={handleAddPackage}>
-              Save
-            </Button>
-          </DialogFooter>
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter description" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pack"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pack</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a billing period" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="pt-2">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" className="bg-[#0a1172] hover:bg-[#1a2182]">
+                  Save
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -399,153 +440,120 @@ export function PricingPage() {
               <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
                 <Pencil className="h-5 w-5" />
               </div>
-              Edit Package
+              Edit Plan
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="edit-package-name" className="text-sm font-medium">
-                Package Name
-              </label>
-              <Input id="edit-package-name" defaultValue="Plan 1" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-package-price" className="text-sm font-medium">
-                Price
-              </label>
-              <Input id="edit-package-price" defaultValue="$49.00" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-package-description" className="text-sm font-medium">
-                Description
-              </label>
-              <Input id="edit-package-description" defaultValue="Basic security monitoring" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-package-features" className="text-sm font-medium">
-                Features
-              </label>
-              <Input
-                id="edit-package-features"
-                defaultValue="Basic security monitoring, Weekly reports, Email alerts"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleEditPlan)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter package name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter description" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pack"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pack</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a billing period" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="daily">Daily</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="pt-2">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" className="bg-[#0a1172] hover:bg-[#1a2182]">
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Package Dialog */}
+      <Dialog open={isDeletePackageOpen} onOpenChange={setIsDeletePackageOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <div className="bg-[#0a1172] mb-5 text-white p-1 rounded-full mr-2">
+                <Trash className="h-6 w-6" />
+              </div>
+              Are you sure you want to delete this package?
+            </DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline">
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="button" className="bg-[#0a1172] hover:bg-[#1a2182]" onClick={handleEditPackage}>
-              Save
+            <Button
+              type="button"
+              className="bg-[#0a1172] hover:bg-[#1a2182]"
+              onClick={handleDeletePlan}
+            >
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add Discount Dialog */}
-      <Dialog open={isAddDiscountOpen} onOpenChange={setIsAddDiscountOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
-                <Plus className="h-5 w-5" />
-              </div>
-              Add New Discount
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="discount-name" className="text-sm font-medium">
-                Discount Name
-              </label>
-              <Input id="discount-name" placeholder="Enter discount name" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="discount-code" className="text-sm font-medium">
-                Code
-              </label>
-              <Input id="discount-code" placeholder="Enter discount code" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="discount-amount" className="text-sm font-medium">
-                Amount (%)
-              </label>
-              <Input id="discount-amount" placeholder="Enter discount percentage" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="discount-description" className="text-sm font-medium">
-                Description
-              </label>
-              <Input id="discount-description" placeholder="Enter description" />
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="button" className="bg-[#0a1172] hover:bg-[#1a2182]" onClick={handleAddDiscount}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Discount Dialog */}
-      <Dialog open={isEditDiscountOpen} onOpenChange={setIsEditDiscountOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
-                <Pencil className="h-5 w-5" />
-              </div>
-              Edit Discount
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="edit-discount-name" className="text-sm font-medium">
-                Discount Name
-              </label>
-              <Input id="edit-discount-name" defaultValue="Discount 1" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-discount-code" className="text-sm font-medium">
-                Code
-              </label>
-              <Input id="edit-discount-code" defaultValue="WELCOME10" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-discount-amount" className="text-sm font-medium">
-                Amount (%)
-              </label>
-              <Input id="edit-discount-amount" defaultValue="10" />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="edit-discount-description" className="text-sm font-medium">
-                Description
-              </label>
-              <Input
-                id="edit-discount-description"
-                defaultValue="10% off for new customers. Valid for the first 3 months."
-              />
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="button" className="bg-[#0a1172] hover:bg-[#1a2182]" onClick={handleEditDiscount}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

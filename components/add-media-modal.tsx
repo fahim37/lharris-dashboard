@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload, FileUp } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -14,8 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useSession } from "next-auth/react"
+import { headers } from "next/headers"
 
 interface AddMediaModalProps {
+    medias: any
     open: boolean
     onOpenChange: (open: boolean) => void
 }
@@ -29,7 +32,7 @@ const formSchema = z.object({
     issueDate: z.string().min(1, "Issue date is required"),
 })
 
-export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
+export function AddMediaModal({ open, onOpenChange, medias }: AddMediaModalProps) {
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,8 +52,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
         },
     })
 
-    const TOKEN =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTE5N2M4YWU2NzVkOGUyZmMyYjg0YyIsImlhdCI6MTc0NjE1NjUyMSwiZXhwIjoxNzQ2NzYxMzIxfQ.FpDyOuqdii2j6wSvzsk13FWGBIcq5GWwd8q89g8fM-k";
+    const session = useSession();
+
+    const TOKEN = session.data?.accessToken;
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -66,9 +70,6 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
-
-        console.log("Email:", values.email);
-
         try {
             const formData = new FormData()
             // Add text fields
@@ -114,6 +115,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
         }
     }
 
+    console.log(medias)
+
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px] md:max-w-[600px] p-0 overflow-hidden">
@@ -142,7 +146,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="nm.bdcalling@gmail.com">nm.bdcalling@gmail.com</SelectItem>
+                                                {medias?.map((user: any) => (
+                                                    <SelectItem value={user?.client?.email}>{user?.client?.email}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>

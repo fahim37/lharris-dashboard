@@ -15,6 +15,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Badge } from "./ui/badge";
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { useSession } from "next-auth/react";
 
 interface MediaViewerDialogProps {
     /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -31,7 +32,16 @@ export async function MediaViewerDialog({
 
     const [noteOfVisit, setNoteOfVisit] = useState<string>("");
 
-    console.log(media)
+
+    const session = useSession();
+
+    const TOKEN = session.data?.accessToken
+
+
+    const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TOKEN}`
+    }
 
 
     // Approve visit
@@ -40,10 +50,7 @@ export async function MediaViewerDialog({
             `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
             {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`
-                },
+                headers,
                 body: JSON.stringify({ status: "completed", notes: noteOfVisit }),
             }
         )
@@ -56,10 +63,7 @@ export async function MediaViewerDialog({
             `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
             {
                 method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`
-                },
+                headers,
                 body: JSON.stringify({ status: "cancelled", cancellationReason: noteOfVisit }),
             }
         )
