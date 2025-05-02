@@ -56,6 +56,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 // import { useSession } from "next-auth/react";
 
 // Define types for our metrics data
@@ -378,12 +379,10 @@ export default function DashboardPage() {
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  // const session = useSession()
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAwMjQwNywiZXhwIjoxNzQ2NjA3MjA3fQ.FhKV2MYzKhDxM9ETnYS8DyHiMQx_97v4RnNggyA5l1c";
-
-
-  // console.log("matricsData", token);
-
+  const session = useSession()
+  const token = session?.data?.accessToken || "";
+  console.log(token);
+  
   // Fetch metrics data from API
   useEffect(() => {
     const fetchMetrics = async () => {
