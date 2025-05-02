@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 
 import {
     Dialog,
@@ -24,13 +23,14 @@ interface MediaViewerDialogProps {
     onOpenChange: (open: boolean) => void;
 }
 
-export async function MediaViewerDialog({
+export function MediaViewerDialog({
     media,
     open,
     onOpenChange,
 }: MediaViewerDialogProps) {
 
     const [noteOfVisit, setNoteOfVisit] = useState<string>("");
+
 
 
     const session = useSession();

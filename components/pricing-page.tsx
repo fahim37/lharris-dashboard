@@ -14,7 +14,6 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { get } from "http"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 interface Plan {
@@ -139,16 +138,16 @@ export function PricingPage() {
     }
   }
 
-  const handleEditClick = (plan: Plan) => {
-    setSelectedPlanId(plan._id)
-    form.reset({
-      name: plan.name,
-      price: plan.price,
-      description: plan.description,
-      pack: plan.pack as "weekly" | "monthly" | "daily",
-    })
-    setIsEditPackageOpen(true)
-  }
+  // const handleEditClick = (plan: Plan) => {
+  //   setSelectedPlanId(plan._id)
+  //   form.reset({
+  //     name: plan.name,
+  //     price: plan.price,
+  //     description: plan.description,
+  //     pack: plan.pack as "weekly" | "monthly" | "daily",
+  //   })
+  //   setIsEditPackageOpen(true)
+  // }
 
   return (
     <div className="flex flex-col h-full">

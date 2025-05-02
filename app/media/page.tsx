@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaViewerDialog } from "@/components/media-viewer-dialog";
-import { Eye, Download, Delete, Edit, Trash } from "lucide-react";
+import { Eye, Trash } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import PaginationComponent from "@/components/pagination";
 import { toast } from "sonner";
-import { Toaster } from "sonner";
 import { AddMediaModal } from "@/components/add-media-modal";
 import { useSession } from "next-auth/react";
 
@@ -29,6 +28,7 @@ interface Visit {
   status: string;
   address: string;
   visitType: string;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   issues: any[];
   type: string;
   notes: string;
@@ -55,7 +55,7 @@ export default function MediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const openModal = () => setIsModalOpen(true)
-  const closeModal = () => setIsModalOpen(false)
+  // const closeModal = () => setIsModalOpen(false)
 
   const [visits, setVisits] = useState<Visits>({
     data: [],
@@ -104,7 +104,7 @@ export default function MediaPage() {
 
   useEffect(() => {
     getAllVisits();
-  }, []);
+  });
 
 
 
@@ -250,7 +250,7 @@ export default function MediaPage() {
                 </TableBody>
               </Table>
               <PaginationComponent
-                currentPage={visits?.meta?.currentPage || 1}
+                currentPage={page || 1}
                 totalPages={visits?.meta?.totalPages || 1}
                 onPageChange={handlePageChange}
                 totalItems={visits?.meta?.totalItems || 0}

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Upload, FileUp } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -15,9 +15,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useSession } from "next-auth/react"
-import { headers } from "next/headers"
 
 interface AddMediaModalProps {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     medias: any
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -146,9 +146,12 @@ export function AddMediaModal({ open, onOpenChange, medias }: AddMediaModalProps
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {medias?.map((user: any) => (
-                                                    <SelectItem value={user?.client?.email}>{user?.client?.email}</SelectItem>
-                                                ))}
+                                                {
+                                                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                                                    medias?.map((user: any, index: number) => (
+                                                        <SelectItem key={index} value={user?.client?.email}>{user?.client?.email}</SelectItem>
+                                                    ))
+                                                }
                                             </SelectContent>
                                         </Select>
                                     </div>
