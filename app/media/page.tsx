@@ -3,36 +3,14 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaViewerDialog } from "@/components/media-viewer-dialog";
-import { Eye, Download, Delete, Edit, Trash } from "lucide-react";
+import { Eye, Trash } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import PaginationComponent from "@/components/pagination";
-import { toast } from "react-toastify";
-import { Toaster } from "sonner";
+import { toast } from "sonner";
 import { AddMediaModal } from "@/components/add-media-modal";
+import { useSession } from "next-auth/react";
 
-// "_id": "681060874ab5fce75ace01dc",
-// "client": {
-//     "_id": "67fa377c60444bf23f4967e1",
-//     "fullname": "sojib",
-//     "email": "sozibbdcalling2025@gmail.com"
-// },
-// "staff": {
-//     "_id": "6808d94166b86dee825b33d0",
-//     "fullname": "Fahim",
-//     "email": "emon@gmail.com"
-// },
-// "address": "123 Elm Street, Springfield",
-// "date": "2025-04-30T10:00:00.000Z",
-// "status": "confirmed",
-// "cancellationReason": "",
-// "notes": "fahim ke add kora holo",
-// "isPaid": true,
-// "issues": [],
-// "createdAt": "2025-04-29T05:15:51.364Z",
-// "updatedAt": "2025-04-30T07:06:39.159Z",
-// "__v": 0,
-// "type": "emergency"
 
 interface Visit {
   _id: string;
@@ -50,6 +28,7 @@ interface Visit {
   status: string;
   address: string;
   visitType: string;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   issues: any[];
   type: string;
   notes: string;
@@ -76,7 +55,7 @@ export default function MediaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const openModal = () => setIsModalOpen(true)
-  const closeModal = () => setIsModalOpen(false)
+  // const closeModal = () => setIsModalOpen(false)
 
   const [visits, setVisits] = useState<Visits>({
     data: [],
@@ -88,8 +67,10 @@ export default function MediaPage() {
     }
   });
 
-  const TOKEN =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8";
+  const session = useSession();
+
+
+  const TOKEN = session.data?.accessToken
 
   const headers = {
     "Content-Type": "application/json",
@@ -98,34 +79,34 @@ export default function MediaPage() {
 
 
 
-  useEffect(() => {
-    const getAllVisits = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`,
-          {
-            method: "GET",
-            headers,
-          }
-        );
-
-        if (!response.ok) {
-          console.log("Error: ", response.status)
+  const getAllVisits = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/active-visit-client`,
+        {
+          method: "GET",
+          headers,
         }
+      );
 
-        const data = await response.json();
-        setVisits(data);
-
-      } catch (error) {
-        console.error("API Error:", error);
-        throw error;
+      if (!response.ok) {
+        console.log("Error: ", response.status)
       }
-    };
+
+      const data = await response.json();
+      setVisits(data);
+
+    } catch (error) {
+      console.error("API Error:", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
     getAllVisits();
-  }, []);
+  });
 
 
-  console.log(visits)
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -148,10 +129,10 @@ export default function MediaPage() {
     if (!response.ok) {
       console.log("Error: ", response.status)
     } else {
+      getAllVisits();
       toast.success("Visit deleted successfully");
     }
   }
-
 
   console.log(visits)
 
@@ -174,7 +155,7 @@ export default function MediaPage() {
               >
                 + Add Media
               </Button>
-              <AddMediaModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+              <AddMediaModal medias={visits?.data} open={isModalOpen} onOpenChange={setIsModalOpen} />
             </div>
 
             <div className="shadow-[0px_10px_60px_0px_#0000001A] py-4 rounded-lg overflow-x-auto">
@@ -269,13 +250,12 @@ export default function MediaPage() {
                 </TableBody>
               </Table>
               <PaginationComponent
-                currentPage={visits?.meta?.currentPage || 1}
+                currentPage={page || 1}
                 totalPages={visits?.meta?.totalPages || 1}
                 onPageChange={handlePageChange}
                 totalItems={visits?.meta?.totalItems || 0}
                 itemsPerPage={visits?.meta?.itemsPerPage || 0}
               />
-              <Toaster />
             </div>
           </div>
         )}

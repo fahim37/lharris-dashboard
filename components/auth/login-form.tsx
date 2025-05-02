@@ -53,7 +53,7 @@ export function LoginForm() {
         email: data.email,
         password: data.password,
         redirect: false,
-        callbackUrl: "/dashboard",
+        callbackUrl: "/",
       });
 
       console.log("login data df", response);
@@ -63,7 +63,7 @@ export function LoginForm() {
       } else {
         alert("Login Successfully");
         toast.success("Login successful");
-        router.push("/dashboard");
+        router.push("/");
         router.refresh();
       }
     } catch (error) {
