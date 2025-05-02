@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Pencil, Trash2, Eye } from "lucide-react";
+import { Download, Trash2,  } from "lucide-react";
 import { toast } from "sonner";
 import {
   LineChart,

@@ -269,7 +269,7 @@ export function VisitPage() {
       };
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit-admin`,
         {
           method: "POST",
           headers: {
@@ -396,7 +396,7 @@ export function VisitPage() {
       if (!token) throw new Error("No authentication token found");
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/delete-visit/${visitToDelete}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitToDelete}`,
         {
           method: "DELETE",
           headers: {
