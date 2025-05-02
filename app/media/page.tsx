@@ -10,29 +10,8 @@ import PaginationComponent from "@/components/pagination";
 import { toast } from "react-toastify";
 import { Toaster } from "sonner";
 import { AddMediaModal } from "@/components/add-media-modal";
+import { useSession } from "next-auth/react";
 
-// "_id": "681060874ab5fce75ace01dc",
-// "client": {
-//     "_id": "67fa377c60444bf23f4967e1",
-//     "fullname": "sojib",
-//     "email": "sozibbdcalling2025@gmail.com"
-// },
-// "staff": {
-//     "_id": "6808d94166b86dee825b33d0",
-//     "fullname": "Fahim",
-//     "email": "emon@gmail.com"
-// },
-// "address": "123 Elm Street, Springfield",
-// "date": "2025-04-30T10:00:00.000Z",
-// "status": "confirmed",
-// "cancellationReason": "",
-// "notes": "fahim ke add kora holo",
-// "isPaid": true,
-// "issues": [],
-// "createdAt": "2025-04-29T05:15:51.364Z",
-// "updatedAt": "2025-04-30T07:06:39.159Z",
-// "__v": 0,
-// "type": "emergency"
 
 interface Visit {
   _id: string;
@@ -87,6 +66,10 @@ export default function MediaPage() {
       itemsPerPage: 0
     }
   });
+
+  // const session = useSession();
+
+  // console.log(session, "session");
 
   const TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8";

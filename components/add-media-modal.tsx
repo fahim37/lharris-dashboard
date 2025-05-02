@@ -50,12 +50,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
     })
 
     const TOKEN =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAxNDQ5MCwiZXhwIjoxNzQ2NjE5MjkwfQ.zEwXACeEAghX8fhlWT8bSJ68uGQBlNqF_4tU-fh_9qs";
-
-    const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TOKEN}`,
-    };
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTE5N2M4YWU2NzVkOGUyZmMyYjg0YyIsImlhdCI6MTc0NjE1NjUyMSwiZXhwIjoxNzQ2NzYxMzIxfQ.FpDyOuqdii2j6wSvzsk13FWGBIcq5GWwd8q89g8fM-k";
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -71,6 +66,8 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
+
+        console.log("Email:", values.email);
 
         try {
             const formData = new FormData()
@@ -96,7 +93,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                 {
                     method: "PATCH",
                     headers: {
-                        Authorization: `Bearer ${TOKEN}`, // Keep the Authorization header
+                        Authorization: `Bearer ${TOKEN}`,
                     },
                     body: formData,
                 },
@@ -145,7 +142,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="sozibdbcalling2025@gmail.com">sozibbdcalling2025@gmail.com</SelectItem>
+                                                <SelectItem value="nm.bdcalling@gmail.com">nm.bdcalling@gmail.com</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
