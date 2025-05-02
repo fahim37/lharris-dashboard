@@ -4,12 +4,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { Providers } from "./provider"; // ✅ Import your Providers component
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard",
-  description: "Admin Dashboard built with Next.js and shadcn/ui",
+  title: "Lharris Admin Dashboard",
+  description: "Lharris Admin Dashboard",
 };
 
 export default function RootLayout({
@@ -20,8 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <DashboardLayout>{children}</DashboardLayout>
-        <Toaster position="top-right" />
+        <Providers>
+          <DashboardLayout>{children}</DashboardLayout>
+          <Toaster position="top-right" />
+        </Providers>
       </body>
     </html>
   );
