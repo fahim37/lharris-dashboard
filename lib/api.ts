@@ -64,7 +64,7 @@ export async function getRevenueGrowth() {
   return fetchAPI("/admin/metrics/revenue-growth");
 }
 
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function createVisit(visitData: any) {
   return fetchAPI("/visits/admin/create-visit", {
     method: "POST",
@@ -95,7 +95,7 @@ export async function getCompletedVisits(userId: string) {
 export async function getCancelledVisits(userId: string) {
   return fetchAPI(`/visits/admin/get-cancelled-visits/${userId}`);
 }
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function updateVisit(visitId: string, visitData: any) {
   return fetchAPI(`/visits/admin/update-visit/${visitId}`, {
     method: "PATCH",
@@ -171,14 +171,14 @@ export async function getUsersByRoleAndStatus(role: string, status: string) {
 export async function getUsersByStatus(status: string) {
   return fetchAPI(`/admin/user-by-status/${status}`);
 }
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function addUser(userData: any) {
   return fetchAPI("/admin/add-user", {
     method: "POST",
     body: JSON.stringify(userData),
   });
 }
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function updateUser(userId: string, userData: any) {
   return fetchAPI(`/admin/update-user/${userId}`, {
     method: "PUT",
