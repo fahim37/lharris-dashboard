@@ -27,7 +27,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Eye, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
@@ -54,7 +54,9 @@ interface VisitApiResponse {
     fullname?: string;
     email?: string;
   };
-  staff?: string;
+  staff?: {
+    fullname?: string;
+  };
   date: string;
   type?: string;
   status?: string;
@@ -62,10 +64,10 @@ interface VisitApiResponse {
   notes?: string;
 }
 
-interface StaffApiResponse {
-  _id: string;
-  fullname: string;
-}
+// interface StaffApiResponse {
+//   _id: string;
+//   fullname: string;
+// }
 
 interface FormData {
   clientEmail: string;
@@ -93,6 +95,8 @@ export function VisitPage() {
   const [isViewVisitOpen, setIsViewVisitOpen] = useState(false);
   const [isEditVisitOpen, setIsEditVisitOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isAssignStaffOpen, setIsAssignStaffOpen] = useState(false);
   const [currentVisit, setCurrentVisit] = useState<Visit | null>(null);
   const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -100,6 +104,8 @@ export function VisitPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   const session = useSession();
   const token = session.data?.accessToken;
@@ -120,6 +126,16 @@ export function VisitPage() {
     date: "",
     time: "",
     type: "",
+    notes: "",
+  });
+
+  const [statusForm, setStatusForm] = useState({
+    status: "",
+    notes: "",
+  });
+
+  const [assignStaffForm, setAssignStaffForm] = useState({
+    staffId: "",
     notes: "",
   });
 
@@ -176,6 +192,8 @@ export function VisitPage() {
 
         if (!visitsResponse.ok) throw new Error("Failed to fetch visits");
         const { data: visitsData } = await visitsResponse.json();
+        console.log("Visits Data:", visitsData);
+        
 
         // Fetch staff
         const staffResponse = await fetch(
@@ -196,7 +214,7 @@ export function VisitPage() {
           id: visit._id,
           clientName: visit.client?.fullname || "N/A",
           clientEmail: visit.client?.email || "",
-          staffName: staffData.find((s: StaffApiResponse) => s._id === visit.staff)?.fullname || "Staff not assigned",
+          staffName: visit.staff?.fullname || "Staff not assigned",
           date: visit.date,
           type: visit.type || "N/A",
           status: visit.status || "pending",
@@ -226,6 +244,10 @@ export function VisitPage() {
         date: visitDate.toISOString().split("T")[0],
         time: visitDate.toTimeString().slice(0, 5),
         type: currentVisit.type,
+        notes: currentVisit.notes || "",
+      });
+      setAssignStaffForm({
+        staffId: staffList.find(s => s.fullname === currentVisit.staffName)?._id || "",
         notes: currentVisit.notes || "",
       });
     }
@@ -421,6 +443,136 @@ export function VisitPage() {
     }
   };
 
+  const handleAssignStaff = async () => {
+    if (!currentVisit || !assignStaffForm.staffId) {
+      toast.error("Please select a staff member");
+      return;
+    }
+
+    setIsAssigning(true);
+    try {
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            staff: assignStaffForm.staffId,
+            notes: assignStaffForm.notes,
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to assign staff");
+
+      const updatedVisit = await response.json();
+      const staffName = staffList.find(s => s._id === assignStaffForm.staffId)?.fullname || "Staff not assigned";
+
+      // Update the visit in state
+      setVisits(prev =>
+        prev.map(visit =>
+          visit.id === currentVisit.id
+            ? { ...visit, staffName, notes: assignStaffForm.notes }
+            : visit
+        )
+      );
+
+      // Update staff list in real-time
+      const staffResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!staffResponse.ok) throw new Error("Failed to fetch updated staff");
+      const { data: updatedStaffData } = await staffResponse.json();
+      setStaffList(updatedStaffData);
+
+      toast.success("Staff assigned successfully");
+      setIsAssignStaffOpen(false);
+      setCurrentVisit(null);
+      setAssignStaffForm({ staffId: "", notes: "" });
+    } catch (error) {
+      console.error("Error assigning staff:", error);
+      toast.error("Failed to assign staff");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleOpenStatusModal = (visit: Visit) => {
+    setCurrentVisit(visit);
+    setStatusForm({
+      status: visit.status,
+      notes: "",
+    });
+    setIsStatusModalOpen(true);
+  };
+
+  const handleOpenAssignStaffModal = (visit: Visit) => {
+    setCurrentVisit(visit);
+    setAssignStaffForm({
+      staffId: staffList.find(s => s.fullname === visit.staffName)?._id || "",
+      notes: visit.notes || "",
+    });
+    setIsAssignStaffOpen(true);
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusForm.status) {
+      toast.error("Please select a status");
+      return;
+    }
+
+    if (!currentVisit) return;
+    setIsSubmitting(true);
+    try {
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${currentVisit.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(statusForm),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to update status");
+
+      // Update the visit in state
+      setVisits(prev =>
+        prev.map(visit =>
+          visit.id === currentVisit.id
+            ? { ...visit, status: statusForm.status }
+            : visit
+        )
+      );
+
+      toast.success("Status updated successfully");
+      setIsStatusModalOpen(false);
+      setStatusForm({ status: "", notes: "" });
+      setCurrentVisit(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getStatusClass = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -483,6 +635,8 @@ export function VisitPage() {
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Visit Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Update Status</TableHead>
+                  <TableHead>Assign Staff</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -490,7 +644,9 @@ export function VisitPage() {
                 {filteredVisits.length > 0 ? (
                   filteredVisits.map((visit) => (
                     <TableRow key={visit.id}>
-                      <TableCell className="font-medium">{visit.id}</TableCell>
+                      <TableCell className="font-medium">
+                        {String(visit.id).slice(-4)} 
+                      </TableCell>
                       <TableCell>{visit.clientName}</TableCell>
                       <TableCell>{visit.staffName}</TableCell>
                       <TableCell>
@@ -511,6 +667,24 @@ export function VisitPage() {
                         >
                           {visit.status}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenStatusModal(visit)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenAssignStaffModal(visit)}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -550,7 +724,7 @@ export function VisitPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-4">
                       No visits found
                     </TableCell>
                   </TableRow>
@@ -1035,6 +1209,144 @@ export function VisitPage() {
                 </>
               ) : (
                 "Confirm"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Update Dialog */}
+      <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Visit Status</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="status" className="text-sm font-medium">
+                Status
+              </label>
+              <Select
+                value={statusForm.status}
+                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <Input
+                id="notes"
+                value={statusForm.notes}
+                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
+                placeholder="Add notes"
+              />
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCurrentVisit(null)}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              className="bg-[#0a1172] hover:bg-[#1a2182]"
+              onClick={handleStatusChange}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Status"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Staff Dialog */}
+      <Dialog open={isAssignStaffOpen} onOpenChange={setIsAssignStaffOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              Assign Staff
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="staff" className="text-sm font-medium">
+                Select Staff
+              </label>
+              <Select
+                value={assignStaffForm.staffId}
+                onValueChange={(value) => setAssignStaffForm({ ...assignStaffForm, staffId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staffList.map((staff) => (
+                    <SelectItem key={staff._id} value={staff._id}>
+                      {staff.fullname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="assign-notes" className="text-sm font-medium">
+                Notes
+              </label>
+              <Input
+                id="assign-notes"
+                value={assignStaffForm.notes}
+                onChange={(e) => setAssignStaffForm({ ...assignStaffForm, notes: e.target.value })}
+                placeholder="Add assignment notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCurrentVisit(null)}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              className="bg-[#0a1172] hover:bg-[#1a2182]"
+              onClick={handleAssignStaff}
+              disabled={isAssigning}
+            >
+              {isAssigning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                "Assign"
               )}
             </Button>
           </DialogFooter>

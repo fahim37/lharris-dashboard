@@ -34,6 +34,11 @@ interface User {
 interface ApiResponse<T> {
   status: boolean
   data: T
+  pagination?: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+  }
 }
 
 interface UserFormData {
@@ -43,9 +48,9 @@ interface UserFormData {
   role: string
 }
 
-const getAllUsers = async (token: string): Promise<ApiResponse<User[]>> => {
+const getAllUsers = async (token: string, page: number = 1, limit: number = 10): Promise<ApiResponse<User[]>> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-user`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${page}&limit=${limit}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -139,6 +144,9 @@ export function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [totalPages, setTotalPages] = useState<number>(1)
+  const [itemsPerPage] = useState<number>(9)
   const { data: session, status } = useSession()
   const [newUser, setNewUser] = useState<UserFormData>({
     fullname: "",
@@ -155,15 +163,19 @@ export function UsersPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.accessToken) {
-      fetchUsers(session.accessToken)
+      fetchUsers(session.accessToken, currentPage)
     }
-  }, [status, session])
+  }, [status, session, currentPage])
 
-  const fetchUsers = async (token: string) => {
+  const fetchUsers = async (token: string, page: number) => {
     try {
-      const response = await getAllUsers(token)
+      const response = await getAllUsers(token, page, itemsPerPage)
       if (response.status && response.data) {
         setUsers(response.data)
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages)
+          setCurrentPage(response.pagination.currentPage)
+        }
       }
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -193,7 +205,7 @@ export function UsersPage() {
       await addUser(newUser, session.accessToken)
       toast.success("User added successfully")
       setIsAddUserOpen(false)
-      fetchUsers(session.accessToken)
+      fetchUsers(session.accessToken, currentPage)
       setNewUser({
         fullname: "",
         email: "",
@@ -216,7 +228,7 @@ export function UsersPage() {
       await updateUser(currentUser._id, editUser, session.accessToken)
       toast.success("User updated successfully")
       setIsEditUserOpen(false)
-      fetchUsers(session.accessToken)
+      fetchUsers(session.accessToken, currentPage)
     } catch (error) {
       console.error("Error updating user:", error)
       toast.error("Failed to update user")
@@ -239,7 +251,7 @@ export function UsersPage() {
       toast.success("User deleted successfully")
       setIsDeleteDialogOpen(false)
       setUserToDelete(null)
-      fetchUsers(session.accessToken)
+      fetchUsers(session.accessToken, currentPage)
     } catch (error) {
       console.error("Error deleting user:", error)
       toast.error("Failed to delete user")
@@ -276,6 +288,12 @@ export function UsersPage() {
       setNewUser((prev) => ({ ...prev, [name]: value }))
     } else {
       setEditUser((prev) => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
     }
   }
 
@@ -349,7 +367,7 @@ export function UsersPage() {
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user, index) => (
                     <TableRow key={user._id}>
-                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>{user.fullname}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>
@@ -397,6 +415,52 @@ export function UsersPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm">
+              <div>
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(
+                  currentPage * itemsPerPage,
+                  (totalPages * itemsPerPage)
+                )}{" "}
+                of {(totalPages * itemsPerPage)} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  <span className="sr-only">Previous page</span>&lt;
+                </Button>
+                {Array.from(
+                  { length: totalPages },
+                  (_, index) => index + 1
+                ).map((page) => (
+                  <Button
+                    key={page}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  <span className="sr-only">Next page</span>&gt;
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

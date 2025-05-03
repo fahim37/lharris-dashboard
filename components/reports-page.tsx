@@ -315,10 +315,9 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col ">
       <PageHeader title="Admin Name" />
-
-      <div className="p-4">
+      <div className="p-4 ">
         <div className="bg-white rounded-md shadow-sm p-4 mb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex space-x-2">
@@ -372,7 +371,7 @@ export function ReportsPage() {
                         : "$0"}
                   </div>
                 </div>
-                <div className="h-64">
+                <div className="h-50">
                   {isRevenueLoading ? (
                     <div className="h-full flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>

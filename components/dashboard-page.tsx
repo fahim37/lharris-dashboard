@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { PageHeader } from "./page-header";
 
 // Define types for our metrics data
 interface MetricsData {
@@ -104,8 +105,9 @@ interface VisitIssueMedia {
 }
 
 interface VisitIssue {
+  issue: ReactNode;
   place: string;
-  issue: string;
+  issue在一起: string;
   type: string;
   media: VisitIssueMedia[];
   notes: string;
@@ -122,11 +124,10 @@ interface VisitData {
   cancellationReason: string;
   type?: string;
   notes: string;
-  isPaid: boolean;
-  issues: VisitIssue[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
+//   isPaid: boolean: VisitIssue[];
+// createdAt: string;
+// updatedAt: string;
+// __v: number;
 }
 
 interface VisitResponse {
@@ -223,6 +224,16 @@ interface UserData {
   lastActive: string;
 }
 
+interface UserResponse {
+  status: boolean;
+  data: UserData[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
+}
+
 interface StaffMember {
   _id: string;
   fullname: string;
@@ -235,7 +246,8 @@ interface EditVisitData {
   type: string;
   notes: string;
 }
-interface allmatrics {
+
+interface AllMetrics {
   activeUsersCount: number;
   totalVisits: number;
   pendingVisits: number;
@@ -285,14 +297,20 @@ export default function DashboardPage() {
     notes: "",
   });
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
-  // --- START IMPLEMENTATION: Added state for status update modal ---
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [statusForm, setStatusForm] = useState({
-    status: '',
-    notes: ''
+    status: "",
+    notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // --- END IMPLEMENTATION ---
+  // Pagination states for User Management tab
+  const [currentUserPage, setCurrentUserPage] = useState<number>(1);
+  const [totalUserPages, setTotalUserPages] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(5);
+  // Pagination states for Visits tab
+  const [currentVisitPage, setCurrentVisitPage] = useState<number>(1);
+  const [totalVisitPages, setTotalVisitPages] = useState<number>(1);
+  const [visitsPerPage] = useState<number>(5);
 
   // Sample calendar data
   const calendarDays: CalendarDay[][] = [
@@ -382,7 +400,7 @@ export default function DashboardPage() {
     },
   ];
 
-  const [matricsData, setMetricsData] = useState<allmatrics | null>(null);
+  const [metricsData, setMetricsData] = useState<AllMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -431,7 +449,7 @@ export default function DashboardPage() {
     fetchMetrics();
   }, [token]);
 
-  const [recetdata, setData] = useState<RecentActivityResponse | null>(null);
+  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(null);
 
   useEffect(() => {
     const fetchActivity = async () => {
@@ -449,7 +467,7 @@ export default function DashboardPage() {
         }
 
         const data = await res.json();
-        setData(data);
+        setRecentData(data);
       } catch (err) {
         console.error("Error:", err);
       }
@@ -463,56 +481,72 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-user`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${currentUserPage}&limit=${itemsPerPage}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
           throw new Error("Failed to fetch");
         }
 
-        const alluser = await res.json();
-        setUserData(alluser.data);
+        const response: UserResponse = await res.json();
+        setUserData(response.data);
+        if (response.pagination) {
+          setTotalUserPages(response.pagination.totalPages);
+          setCurrentUserPage(response.pagination.currentPage);
+        }
       } catch (err) {
         console.error("Error:", err);
+        toast.error("Failed to fetch users");
       }
     };
 
     if (activeTab === "users") {
       fetchUsers();
     }
-  }, [activeTab, token]);
+  }, [activeTab, token, currentUserPage]);
 
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
           throw new Error("Failed to fetch visits");
         }
 
-        const data = await res.json();
+        const data: VisitResponse = await res.json();
         setVisitsData(data);
+        if (data.meta) {
+          setTotalVisitPages(data.meta.totalPages);
+          setCurrentVisitPage(data.meta.currentPage);
+        }
       } catch (err) {
         console.error("Error fetching visits:", err);
+        toast.error("Failed to fetch visits");
       }
     };
 
     if (activeTab === "visits") {
       fetchVisits();
     }
-  }, [activeTab, token]);
+  }, [activeTab, token, currentVisitPage]);
 
   // Fetch staff members for the edit form
   useEffect(() => {
@@ -583,7 +617,7 @@ export default function DashboardPage() {
       const matchesStatus =
         visitStatusFilter === "all" || visit.status === visitStatusFilter;
 
-      // Filter by date (simplified for now)
+      // Filter by date
       let matchesDate = true;
       if (visitDateFilter === "today") {
         const today = new Date().toISOString().split("T")[0];
@@ -675,13 +709,16 @@ export default function DashboardPage() {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete user");
@@ -701,14 +738,17 @@ export default function DashboardPage() {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editUserData),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editUserData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update user");
@@ -732,13 +772,16 @@ export default function DashboardPage() {
 
   const handleViewVisit = async (visitId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch visit details");
@@ -760,13 +803,16 @@ export default function DashboardPage() {
 
   const confirmDeleteVisit = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete visit");
@@ -805,27 +851,33 @@ export default function DashboardPage() {
   const handleEditVisitSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editVisitData),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editVisitData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update visit");
       }
 
       // Refresh visits data after update
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (res.ok) {
         const data = await res.json();
@@ -841,65 +893,67 @@ export default function DashboardPage() {
     }
   };
 
-  // --- START IMPLEMENTATION: Function to open status update modal ---
   const handleOpenStatusModal = (visit: VisitData) => {
     setSelectedVisitId(visit._id);
     setStatusForm({
       status: visit.status,
-      notes: ''
+      notes: "",
     });
     setIsStatusModalOpen(true);
   };
-  // --- END IMPLEMENTATION ---
 
-  // --- START IMPLEMENTATION: Function to handle status update API call ---
   const handleStatusChange = async () => {
     if (!statusForm.status) {
-      toast.error('Please select a status');
+      toast.error("Please select a status");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${selectedVisitId}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(statusForm),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${selectedVisitId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(statusForm),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to update status');
+        throw new Error("Failed to update status");
       }
 
       // Refresh visits data after update
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (res.ok) {
         const data = await res.json();
         setVisitsData(data);
       }
 
-      toast.success('Status updated successfully');
+      toast.success("Status updated successfully");
       setIsStatusModalOpen(false);
-      setStatusForm({ status: '', notes: '' });
-      setSelectedVisitId('');
+      setStatusForm({ status: "", notes: "" });
+      setSelectedVisitId("");
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Failed to update status. Please try again.');
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-  // --- END IMPLEMENTATION ---
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -929,13 +983,16 @@ export default function DashboardPage() {
   const fetchRevenueData = async (range: string) => {
     setIsRevenueLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}`);
       }
@@ -943,7 +1000,7 @@ export default function DashboardPage() {
       setRevenueData(data.data);
     } catch (err) {
       console.error("Error fetching revenue data:", err);
-      toast.error("Failed to load revenue data");
+      // toast.error("Failed to load revenue data");
     } finally {
       setIsRevenueLoading(false);
     }
@@ -988,10 +1045,21 @@ export default function DashboardPage() {
     }
   }, [activeTab, chartTimeframe, token]);
 
+  const handleUserPageChange = (page: number) => {
+    if (page >= 1 && page <= totalUserPages) {
+      setCurrentUserPage(page);
+    }
+  };
+
+  const handleVisitPageChange = (page: number) => {
+    if (page >= 1 && page <= totalVisitPages) {
+      setCurrentVisitPage(page);
+    }
+  };
+
   return (
-    <div className="p-4 ">
-      <h1 className="text-2xl font-bold  ">Dashboard</h1>
-      <p className="mb-6">Admin Dashboard</p>
+    <div className="p-4 h-screen overflow-y-auto">
+      <PageHeader title="Admin Name" />
 
       {error && (
         <div
@@ -1007,26 +1075,23 @@ export default function DashboardPage() {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="bg-white rounded-full p-1 mb-6 inline-flex">
+        <div className="bg-white rounded-full p-1 mb-6 inline-flex mt-2">
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""
-                }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""}`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""
-                }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""}`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""
-                }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""}`}
             >
               Visits
             </TabsTrigger>
@@ -1089,7 +1154,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="md:col-span-2">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
@@ -1101,8 +1166,7 @@ export default function DashboardPage() {
                           chartTimeframe === "12months" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""
-                          }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
@@ -1112,8 +1176,7 @@ export default function DashboardPage() {
                           chartTimeframe === "30days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""
-                          }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
@@ -1123,8 +1186,7 @@ export default function DashboardPage() {
                           chartTimeframe === "7days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""
-                          }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -1234,7 +1296,7 @@ export default function DashboardPage() {
                       <div>Package</div>
                       <div>Price</div>
                     </div>
-                    {recetdata?.data.map((activity, index) => (
+                    {recentData?.data.map((activity, index) => (
                       <div
                         key={index}
                         className="grid grid-cols-3 items-center"
@@ -1244,7 +1306,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-sm">{activity?.plan?.name}</div>
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs `}>
+                          <span className={`px-2 py-1 rounded-full text-xs`}>
                             {activity?.plan?.price}
                           </span>
                         </div>
@@ -1450,8 +1512,8 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mb-6 ">
-            <div className="flex justify-between items-center mb-4 bg-[#FFFFFF]  py-[25px] px-4">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4 bg-[#FFFFFF] py-[25px] px-4">
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -1491,7 +1553,7 @@ export default function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead>ID</TableHead>
+                      <TableHead>S.No</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
@@ -1501,48 +1563,106 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user._id}>
-                        <TableCell>{user._id.substring(0, 6)}</TableCell>
-                        <TableCell>{user.fullname}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.role}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                              user.status
-                            )}`}
-                          >
-                            {user.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.lastActive).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditClick(user)}
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map((user, index) => (
+                        <TableRow key={user._id}>
+                          <TableCell>
+                            {(currentUserPage - 1) * itemsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell>{user.fullname}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.role}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                                user.status
+                              )}`}
                             >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteClick(user._id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                              {user.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.lastActive).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditClick(user)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(user._id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center">
+                          No users found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Pagination for Users */}
+            {totalUserPages > 1 && (
+              <div className="flex items-center justify-between mt-4 text-sm">
+                <div>
+                  Showing {(currentUserPage - 1) * itemsPerPage + 1} to{" "}
+                  {Math.min(
+                    currentUserPage * itemsPerPage,
+                    totalUserPages * itemsPerPage
+                  )}{" "}
+                  of {totalUserPages * itemsPerPage} results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentUserPage === 1}
+                    onClick={() => handleUserPageChange(currentUserPage - 1)}
+                  >
+                    <span className="sr-only">Previous page</span>
+                    &lt;
+                  </Button>
+                  {Array.from(
+                    { length: totalUserPages },
+                    (_, index) => index + 1
+                  ).map((page) => (
+                    <Button
+                      key={page}
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 w-8 p-0 ${currentUserPage === page ? "bg-yellow-100" : ""}`}
+                      onClick={() => handleUserPageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentUserPage === totalUserPages}
+                    onClick={() => handleUserPageChange(currentUserPage + 1)}
+                  >
+                    <span className="sr-only">Next page</span>
+                    &gt;
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -1561,7 +1681,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div className="text-4xl font-bold text-navy-900">
-                    {matricsData?.activeUsersCount}
+                    {metricsData?.activeUsersCount}
                   </div>
                 </div>
               </CardContent>
@@ -1577,7 +1697,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold text-navy-900">
-                  {matricsData?.completedVisitCount}
+                  {metricsData?.completedVisitCount}
                 </div>
               </CardContent>
             </Card>
@@ -1593,7 +1713,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-4xl font-bold text-navy-900">
-                    {matricsData?.confirmedVisitCount}
+                    {metricsData?.confirmedVisitCount}
                   </div>
                 </div>
               </CardContent>
@@ -1658,13 +1778,15 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit) => (
+                    filteredVisits.map((visit, index) => (
                       <TableRow key={visit._id}>
                         <TableCell>{formatDate(visit.date)}</TableCell>
                         <TableCell>{extractTime(visit.date)}</TableCell>
                         <TableCell>{visit.address}</TableCell>
                         <TableCell>{visit?.client?.fullname}</TableCell>
-                        <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
+                        <TableCell>
+                          {visit.staff?.fullname || "Not Assigned"}
+                        </TableCell>
                         <TableCell>
                           <span
                             className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
@@ -1684,7 +1806,6 @@ export default function DashboardPage() {
                           </Button>
                         </TableCell>
                         <TableCell>
-                          {/* --- START IMPLEMENTATION: Modified Update Status button to open modal --- */}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1692,7 +1813,6 @@ export default function DashboardPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {/* --- END IMPLEMENTATION --- */}
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
@@ -1725,6 +1845,54 @@ export default function DashboardPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Pagination for Visits */}
+          {totalVisitPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm">
+              <div>
+                Showing {(currentVisitPage - 1) * visitsPerPage + 1} to{" "}
+                {Math.min(
+                  currentVisitPage * visitsPerPage,
+                  totalVisitPages * visitsPerPage
+                )}{" "}
+                of {totalVisitPages * visitsPerPage} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentVisitPage === 1}
+                  onClick={() => handleVisitPageChange(currentVisitPage - 1)}
+                >
+                  <span className="sr-only">Previous page</span>
+                  &lt;
+                </Button>
+                {Array.from(
+                  { length: totalVisitPages },
+                  (_, index) => index + 1
+                ).map((page) => (
+                  <Button
+                    key={page}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${currentVisitPage === page ? "bg-yellow-100" : ""}`}
+                    onClick={() => handleVisitPageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentVisitPage === totalVisitPages}
+                  onClick={() => handleVisitPageChange(currentVisitPage + 1)}
+                >
+                  <span className="sr-only">Next page</span>
+                  &gt;
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -2001,6 +2169,7 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+
       {/* Edit Visit Dialog */}
       <Dialog
         open={isEditVisitDialogOpen}
@@ -2110,7 +2279,7 @@ export default function DashboardPage() {
                 id="notes"
                 value={statusForm.notes}
                 onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
-                placeholder="Add notes (e.g., basa dekha sesh)"
+                placeholder="Add notes"
                 rows={4}
               />
             </div>
