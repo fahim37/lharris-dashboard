@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { PageHeader } from "./page-header";
 
 // Define types for our metrics data
 interface MetricsData {
@@ -103,8 +105,9 @@ interface VisitIssueMedia {
 }
 
 interface VisitIssue {
+  issue: ReactNode;
   place: string;
-  issue: string;
+  issue在一起: string;
   type: string;
   media: VisitIssueMedia[];
   notes: string;
@@ -121,11 +124,10 @@ interface VisitData {
   cancellationReason: string;
   type?: string;
   notes: string;
-  isPaid: boolean;
-  issues: VisitIssue[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
+//   isPaid: boolean: VisitIssue[];
+// createdAt: string;
+// updatedAt: string;
+// __v: number;
 }
 
 interface VisitResponse {
@@ -222,6 +224,16 @@ interface UserData {
   lastActive: string;
 }
 
+interface UserResponse {
+  status: boolean;
+  data: UserData[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
+}
+
 interface StaffMember {
   _id: string;
   fullname: string;
@@ -234,7 +246,8 @@ interface EditVisitData {
   type: string;
   notes: string;
 }
-interface allmatrics {
+
+interface AllMetrics {
   activeUsersCount: number;
   totalVisits: number;
   pendingVisits: number;
@@ -284,6 +297,20 @@ export default function DashboardPage() {
     notes: "",
   });
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [statusForm, setStatusForm] = useState({
+    status: "",
+    notes: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Pagination states for User Management tab
+  const [currentUserPage, setCurrentUserPage] = useState<number>(1);
+  const [totalUserPages, setTotalUserPages] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(5);
+  // Pagination states for Visits tab
+  const [currentVisitPage, setCurrentVisitPage] = useState<number>(1);
+  const [totalVisitPages, setTotalVisitPages] = useState<number>(1);
+  const [visitsPerPage] = useState<number>(5);
 
   // Sample calendar data
   const calendarDays: CalendarDay[][] = [
@@ -373,11 +400,12 @@ export default function DashboardPage() {
     },
   ];
 
-  const [matricsData, setMetricsData] = useState<allmatrics | null>(null);
+  const [metricsData, setMetricsData] = useState<AllMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  console.log("matricsData", matricsData);
+  const session = useSession();
+  const token = session?.data?.accessToken || "";
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -385,14 +413,19 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const response = await fetch(
-          "http://localhost:5001/api/v1/admin/metrics"
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
         );
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
         }
         const data = await response.json();
         setMetricsData(data?.data);
-        // console.log("Metrics data:", data);
 
         // Update metrics with data from API
         setMetrics({
@@ -414,19 +447,46 @@ export default function DashboardPage() {
     };
 
     fetchMetrics();
-  }, []);
+  }, [token]);
 
-  const [recetdata, setData] = useState<RecentActivityResponse | null>(null);
+  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(null);
 
   useEffect(() => {
     const fetchActivity = async () => {
       try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+
+        const data = await res.json();
+        setRecentData(data);
+      } catch (err) {
+        console.error("Error:", err);
+      }
+    };
+
+    fetchActivity();
+  }, [token]);
+
+  const [userData, setUserData] = useState<UserData[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
         const res = await fetch(
-          "http://localhost:5001/api/v1/admin/metrics/recent-user-activity",
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${currentUserPage}&limit=${itemsPerPage}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -436,54 +496,32 @@ export default function DashboardPage() {
           throw new Error("Failed to fetch");
         }
 
-        const data = await res.json();
-        setData(data);
-      } catch (err) {
-        console.error("Error:", err);
-      }
-    };
-
-    fetchActivity();
-  }, []);
-
-  const [userData, setUserData] = useState<UserData[]>([]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch("http://localhost:5001/api/v1/admin/all-user", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch");
+        const response: UserResponse = await res.json();
+        setUserData(response.data);
+        if (response.pagination) {
+          setTotalUserPages(response.pagination.totalPages);
+          setCurrentUserPage(response.pagination.currentPage);
         }
-
-        const alluser = await res.json();
-        setUserData(alluser.data);
       } catch (err) {
         console.error("Error:", err);
+        toast.error("Failed to fetch users");
       }
     };
 
     if (activeTab === "users") {
       fetchUsers();
     }
-  }, [activeTab]);
+  }, [activeTab, token, currentUserPage]);
 
   useEffect(() => {
     const fetchVisits = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5001/api/v1/visits/get-all-visit",
+          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
           {
             method: "GET",
             headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           }
@@ -493,34 +531,34 @@ export default function DashboardPage() {
           throw new Error("Failed to fetch visits");
         }
 
-        const data = await res.json();
-        console.log("Visits data:", data);
-
+        const data: VisitResponse = await res.json();
         setVisitsData(data);
+        if (data.meta) {
+          setTotalVisitPages(data.meta.totalPages);
+          setCurrentVisitPage(data.meta.currentPage);
+        }
       } catch (err) {
         console.error("Error fetching visits:", err);
+        toast.error("Failed to fetch visits");
       }
     };
 
     if (activeTab === "visits") {
       fetchVisits();
     }
-  }, [activeTab]);
+  }, [activeTab, token, currentVisitPage]);
 
   // Fetch staff members for the edit form
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const res = await fetch(
-          "http://localhost:5001/api/v1/admin/all-staff",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
         if (!res.ok) {
           throw new Error("Failed to fetch staff members");
@@ -537,7 +575,7 @@ export default function DashboardPage() {
     if (isEditVisitDialogOpen) {
       fetchStaffMembers();
     }
-  }, [isEditVisitDialogOpen]);
+  }, [isEditVisitDialogOpen, token]);
 
   // Filter users based on search term
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -579,7 +617,7 @@ export default function DashboardPage() {
       const matchesStatus =
         visitStatusFilter === "all" || visit.status === visitStatusFilter;
 
-      // Filter by date (simplified for now)
+      // Filter by date
       let matchesDate = true;
       if (visitDateFilter === "today") {
         const today = new Date().toISOString().split("T")[0];
@@ -627,7 +665,11 @@ export default function DashboardPage() {
         return "bg-red-100 text-red-800";
       case "Confirm":
       case "confirm":
+      case "confirmed":
         return "bg-green-100 text-green-800";
+      case "pending":
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -668,11 +710,11 @@ export default function DashboardPage() {
   const confirmDelete = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/admin/delete-user/${selectedUserId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -697,11 +739,11 @@ export default function DashboardPage() {
     e.preventDefault();
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/admin/update-user/${selectedUserId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`,
         {
           method: "PUT",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(editUserData),
@@ -731,11 +773,11 @@ export default function DashboardPage() {
   const handleViewVisit = async (visitId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/visits/get-specific-visit/${visitId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -762,11 +804,11 @@ export default function DashboardPage() {
   const confirmDeleteVisit = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/visits/issues/delete-visit/${selectedVisitId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -810,11 +852,11 @@ export default function DashboardPage() {
     e.preventDefault();
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/visits/update-visit/${selectedVisitId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`,
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(editVisitData),
@@ -827,11 +869,11 @@ export default function DashboardPage() {
 
       // Refresh visits data after update
       const res = await fetch(
-        "http://localhost:5001/api/v1/visits/get-all-visit",
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -848,6 +890,68 @@ export default function DashboardPage() {
       toast.error("Failed to update visit");
     } finally {
       setIsEditVisitDialogOpen(false);
+    }
+  };
+
+  const handleOpenStatusModal = (visit: VisitData) => {
+    setSelectedVisitId(visit._id);
+    setStatusForm({
+      status: visit.status,
+      notes: "",
+    });
+    setIsStatusModalOpen(true);
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusForm.status) {
+      toast.error("Please select a status");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${selectedVisitId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(statusForm),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      // Refresh visits data after update
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setVisitsData(data);
+      }
+
+      toast.success("Status updated successfully");
+      setIsStatusModalOpen(false);
+      setStatusForm({ status: "", notes: "" });
+      setSelectedVisitId("");
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -880,11 +984,11 @@ export default function DashboardPage() {
     setIsRevenueLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:5001/api/v1/admin/metrics/revenue-growth?range=${range}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
@@ -896,7 +1000,7 @@ export default function DashboardPage() {
       setRevenueData(data.data);
     } catch (err) {
       console.error("Error fetching revenue data:", err);
-      toast.error("Failed to load revenue data");
+      // toast.error("Failed to load revenue data");
     } finally {
       setIsRevenueLoading(false);
     }
@@ -926,7 +1030,6 @@ export default function DashboardPage() {
     switch (timeframe) {
       case "12months":
         return "1y";
-
       case "30days":
         return "30d";
       case "7days":
@@ -940,12 +1043,23 @@ export default function DashboardPage() {
     if (activeTab === "overview") {
       fetchRevenueData(getTimeRangeParam(chartTimeframe));
     }
-  }, [activeTab, chartTimeframe]);
+  }, [activeTab, chartTimeframe, token]);
+
+  const handleUserPageChange = (page: number) => {
+    if (page >= 1 && page <= totalUserPages) {
+      setCurrentUserPage(page);
+    }
+  };
+
+  const handleVisitPageChange = (page: number) => {
+    if (page >= 1 && page <= totalVisitPages) {
+      setCurrentVisitPage(page);
+    }
+  };
 
   return (
-    <div className="p-4 ">
-      <h1 className="text-2xl font-bold  ">Dashboard</h1>
-      <p className="mb-6">Admin Dashboard</p>
+    <div className="p-4 h-screen overflow-y-auto">
+      <PageHeader title="Admin Name" />
 
       {error && (
         <div
@@ -961,29 +1075,23 @@ export default function DashboardPage() {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="bg-white rounded-full p-1 mb-6 inline-flex">
+        <div className="bg-white rounded-full p-1 mb-6 inline-flex mt-2">
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "overview" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""}`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "users" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""}`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "visits" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""}`}
             >
               Visits
             </TabsTrigger>
@@ -1007,7 +1115,6 @@ export default function DashboardPage() {
                   <div className="text-4xl font-bold text-navy-900">
                     {metrics.totalVisits}
                   </div>
-                  {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
             </Card>
@@ -1025,7 +1132,6 @@ export default function DashboardPage() {
                   <div className="text-4xl font-bold text-navy-900">
                     {metrics.activeUsers}
                   </div>
-                  {/* <div className="text-sm text-green-500">+ 36% ↑</div> */}
                 </div>
               </CardContent>
             </Card>
@@ -1043,13 +1149,12 @@ export default function DashboardPage() {
                   <div className="text-4xl font-bold text-navy-900">
                     {metrics.pendingVisits}
                   </div>
-                  {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="md:col-span-2">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
@@ -1061,29 +1166,17 @@ export default function DashboardPage() {
                           chartTimeframe === "12months" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "12months" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
                       </Button>
-                      {/* <Button
-                        variant={chartTimeframe === "6months" ? "default" : "outline"}
-                        size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "6months" ? "bg-blue-950" : ""}`}
-                        onClick={() => setChartTimeframe("6months")}
-                      >
-                        6 Months
-                      </Button> */}
                       <Button
                         variant={
                           chartTimeframe === "30days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "30days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
@@ -1093,9 +1186,7 @@ export default function DashboardPage() {
                           chartTimeframe === "7days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "7days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -1123,10 +1214,10 @@ export default function DashboardPage() {
                         {isRevenueLoading
                           ? "Loading..."
                           : revenueData.length > 0
-                          ? `$${revenueData[
+                            ? `$${revenueData[
                               revenueData.length - 1
                             ]?.revenue.toLocaleString()}`
-                          : "$0"}
+                            : "$0"}
                       </div>
                     </div>
                     <div className="h-64">
@@ -1204,9 +1295,8 @@ export default function DashboardPage() {
                       <div>Name</div>
                       <div>Package</div>
                       <div>Price</div>
-                      {/* <div>Last Login</div> */}
                     </div>
-                    {recetdata?.data.map((activity, index) => (
+                    {recentData?.data.map((activity, index) => (
                       <div
                         key={index}
                         className="grid grid-cols-3 items-center"
@@ -1216,11 +1306,10 @@ export default function DashboardPage() {
                         </div>
                         <div className="text-sm">{activity?.plan?.name}</div>
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs `}>
+                          <span className={`px-2 py-1 rounded-full text-xs`}>
                             {activity?.plan?.price}
                           </span>
                         </div>
-                        {/* <div className="text-sm">{activity.lastLogin}</div> */}
                       </div>
                     ))}
                   </div>
@@ -1289,8 +1378,8 @@ export default function DashboardPage() {
                               day.day === 13 || day.day === 21
                                 ? "text-red-500"
                                 : day.day === 30
-                                ? "text-yellow-500"
-                                : ""
+                                  ? "text-yellow-500"
+                                  : ""
                             }
                           >
                             {day.day}
@@ -1388,7 +1477,6 @@ export default function DashboardPage() {
                   <div className="text-4xl font-bold text-navy-900">
                     {metrics.activeUsers}
                   </div>
-                  {/* <div className="text-sm text-green-500">+ 36% ↑</div> */}
                 </div>
               </CardContent>
             </Card>
@@ -1424,8 +1512,8 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mb-6 ">
-            <div className="flex justify-between items-center mb-4 bg-[#FFFFFF]  py-[25px] px-4">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4 bg-[#FFFFFF] py-[25px] px-4">
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -1465,7 +1553,7 @@ export default function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead>ID</TableHead>
+                      <TableHead>S.No</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
@@ -1475,48 +1563,106 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user._id}>
-                        <TableCell>{user._id.substring(0, 6)}</TableCell>
-                        <TableCell>{user.fullname}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.role}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                              user.status
-                            )}`}
-                          >
-                            {user.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(user.lastActive).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditClick(user)}
+                    {filteredUsers.length > 0 ? (
+                      filteredUsers.map((user, index) => (
+                        <TableRow key={user._id}>
+                          <TableCell>
+                            {(currentUserPage - 1) * itemsPerPage + index + 1}
+                          </TableCell>
+                          <TableCell>{user.fullname}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.role}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
+                                user.status
+                              )}`}
                             >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteClick(user._id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                              {user.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(user.lastActive).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditClick(user)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteClick(user._id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center">
+                          No users found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Pagination for Users */}
+            {totalUserPages > 1 && (
+              <div className="flex items-center justify-between mt-4 text-sm">
+                <div>
+                  Showing {(currentUserPage - 1) * itemsPerPage + 1} to{" "}
+                  {Math.min(
+                    currentUserPage * itemsPerPage,
+                    totalUserPages * itemsPerPage
+                  )}{" "}
+                  of {totalUserPages * itemsPerPage} results
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentUserPage === 1}
+                    onClick={() => handleUserPageChange(currentUserPage - 1)}
+                  >
+                    <span className="sr-only">Previous page</span>
+                    &lt;
+                  </Button>
+                  {Array.from(
+                    { length: totalUserPages },
+                    (_, index) => index + 1
+                  ).map((page) => (
+                    <Button
+                      key={page}
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 w-8 p-0 ${currentUserPage === page ? "bg-yellow-100" : ""}`}
+                      onClick={() => handleUserPageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={currentUserPage === totalUserPages}
+                    onClick={() => handleUserPageChange(currentUserPage + 1)}
+                  >
+                    <span className="sr-only">Next page</span>
+                    &gt;
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -1535,9 +1681,8 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div className="text-4xl font-bold text-navy-900">
-                    {matricsData?.activeUsersCount}
+                    {metricsData?.activeUsersCount}
                   </div>
-                  {/* <div className="text-sm text-red-500">+ 14% ↓</div> */}
                 </div>
               </CardContent>
             </Card>
@@ -1552,7 +1697,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold text-navy-900">
-                  {matricsData?.completedVisitCount}
+                  {metricsData?.completedVisitCount}
                 </div>
               </CardContent>
             </Card>
@@ -1568,9 +1713,8 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-4xl font-bold text-navy-900">
-                    {matricsData?.confirmedVisitCount}
+                    {metricsData?.confirmedVisitCount}
                   </div>
-                  {/* <div className="text-sm text-gray-600">Date : {new Date().toLocaleDateString()}</div> */}
                 </div>
               </CardContent>
             </Card>
@@ -1611,7 +1755,7 @@ export default function DashboardPage() {
                 </SelectContent>
               </Select>
               <Button className="bg-[#091057] hover:bg-[#091057]/80">
-                Schedule Visit
+                Add Visit
               </Button>
             </div>
           </div>
@@ -1628,17 +1772,18 @@ export default function DashboardPage() {
                     <TableHead>Staff</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Assign Staff</TableHead>
+                    <TableHead>Update Status</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit) => (
+                    filteredVisits.map((visit, index) => (
                       <TableRow key={visit._id}>
                         <TableCell>{formatDate(visit.date)}</TableCell>
                         <TableCell>{extractTime(visit.date)}</TableCell>
                         <TableCell>{visit.address}</TableCell>
-                        <TableCell>{visit.client.fullname}</TableCell>
+                        <TableCell>{visit?.client?.fullname}</TableCell>
                         <TableCell>
                           {visit.staff?.fullname || "Not Assigned"}
                         </TableCell>
@@ -1656,6 +1801,15 @@ export default function DashboardPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditVisit(visit)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenStatusModal(visit)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -1682,7 +1836,7 @@ export default function DashboardPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-4">
+                      <TableCell colSpan={9} className="text-center py-4">
                         {isLoading ? "Loading visits..." : "No visits found"}
                       </TableCell>
                     </TableRow>
@@ -1691,6 +1845,54 @@ export default function DashboardPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Pagination for Visits */}
+          {totalVisitPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm">
+              <div>
+                Showing {(currentVisitPage - 1) * visitsPerPage + 1} to{" "}
+                {Math.min(
+                  currentVisitPage * visitsPerPage,
+                  totalVisitPages * visitsPerPage
+                )}{" "}
+                of {totalVisitPages * visitsPerPage} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentVisitPage === 1}
+                  onClick={() => handleVisitPageChange(currentVisitPage - 1)}
+                >
+                  <span className="sr-only">Previous page</span>
+                  &lt;
+                </Button>
+                {Array.from(
+                  { length: totalVisitPages },
+                  (_, index) => index + 1
+                ).map((page) => (
+                  <Button
+                    key={page}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${currentVisitPage === page ? "bg-yellow-100" : ""}`}
+                    onClick={() => handleVisitPageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentVisitPage === totalVisitPages}
+                  onClick={() => handleVisitPageChange(currentVisitPage + 1)}
+                >
+                  <span className="sr-only">Next page</span>
+                  &gt;
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -1848,11 +2050,10 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="text-sm font-medium mb-1">Payment</h4>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      specificVisit.isPaid
+                    className={`px-2 py-1 rounded-full text-xs ${specificVisit.isPaid
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
-                    }`}
+                      }`}
                   >
                     {specificVisit.isPaid ? "Paid" : "Unpaid"}
                   </span>
@@ -1879,11 +2080,10 @@ export default function DashboardPage() {
                         <div>
                           <h5 className="text-xs font-medium">Type</h5>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              issue.type === "warning"
+                            className={`px-2 py-1 rounded-full text-xs ${issue.type === "warning"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-red-100 text-red-800"
-                            }`}
+                              }`}
                           >
                             {issue.type}
                           </span>
@@ -1908,6 +2108,8 @@ export default function DashboardPage() {
                                     src={media.url || "/placeholder.svg"}
                                     alt="Issue media"
                                     className="h-16 w-16 object-cover rounded-md"
+                                    width={64}
+                                    height={64}
                                   />
                                 ) : (
                                   <div className="h-16 w-16 bg-gray-100 flex items-center justify-center rounded-md">
@@ -1966,6 +2168,7 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Edit Visit Dialog */}
       <Dialog
@@ -2040,6 +2243,65 @@ export default function DashboardPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* --- START IMPLEMENTATION: Status Update Dialog --- */}
+      <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Visit Status</DialogTitle>
+            <DialogDescription>
+              Update the status and add notes for this visit
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={statusForm.status}
+                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* [ " completed", "cancelled", "confirmed",
+                  "pending" ] */}
+                  {/* <SelectItem value="Pending">Pending</SelectItem> */}
+                  {/* <SelectItem value="confirmed">Confirmed</SelectItem> */}
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={statusForm.notes}
+                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
+                placeholder="Add notes"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStatusChange}
+              disabled={isSubmitting}
+              className="bg-[#091057] hover:bg-[#091057]/80"
+            >
+              {isSubmitting ? 'Updating...' : 'Update Status'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* --- END IMPLEMENTATION --- */}
     </div>
   );
 }
