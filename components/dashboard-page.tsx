@@ -516,6 +516,7 @@ export default function DashboardPage() {
     if (activeTab === "users") {
       fetchUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token, currentUserPage]);
 
   useEffect(() => {
@@ -551,6 +552,7 @@ export default function DashboardPage() {
     if (activeTab === "visits") {
       fetchVisits();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token, currentVisitPage]);
 
   // Fetch staff members for the edit form
@@ -1051,6 +1053,7 @@ export default function DashboardPage() {
     if (activeTab === "overview") {
       fetchRevenueData(getTimeRangeParam(chartTimeframe));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, chartTimeframe, token]);
 
   const handleUserPageChange = (page: number) => {
