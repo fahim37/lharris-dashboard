@@ -56,6 +56,7 @@ interface VisitApiResponse {
   };
   staff?: {
     fullname?: string;
+    _id?: string;
   };
   date: string;
   type?: string;
@@ -64,10 +65,13 @@ interface VisitApiResponse {
   notes?: string;
 }
 
-// interface StaffApiResponse {
-//   _id: string;
-//   fullname: string;
-// }
+interface PaginatedVisitsResponse {
+  data: VisitApiResponse[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 
 interface FormData {
   clientEmail: string;
@@ -106,6 +110,9 @@ export function VisitPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
 
   const session = useSession();
   const token = session.data?.accessToken;
@@ -179,9 +186,9 @@ export function VisitPage() {
       try {
         if (!token) return;
 
-        // Fetch visits
+        // Fetch visits with pagination
         const visitsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`,
+          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&pageSize=${pageSize}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -191,9 +198,7 @@ export function VisitPage() {
         );
 
         if (!visitsResponse.ok) throw new Error("Failed to fetch visits");
-        const { data: visitsData } = await visitsResponse.json();
-        console.log("Visits Data:", visitsData);
-        
+        const visitsData: PaginatedVisitsResponse = await visitsResponse.json();
 
         // Fetch staff
         const staffResponse = await fetch(
@@ -210,7 +215,7 @@ export function VisitPage() {
         const { data: staffData } = await staffResponse.json();
 
         // Transform visits data
-        const transformedVisits = visitsData.map((visit: VisitApiResponse) => ({
+        const transformedVisits = visitsData.data.map((visit: VisitApiResponse) => ({
           id: visit._id,
           clientName: visit.client?.fullname || "N/A",
           clientEmail: visit.client?.email || "",
@@ -224,6 +229,7 @@ export function VisitPage() {
 
         setVisits(transformedVisits);
         setStaffList(staffData);
+        setTotalPages(visitsData.totalPages);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
@@ -231,7 +237,7 @@ export function VisitPage() {
     };
 
     fetchData();
-  }, [token]);
+  }, [token, page, pageSize]);
 
   // Populate edit form when currentVisit changes
   useEffect(() => {
@@ -308,9 +314,9 @@ export function VisitPage() {
       }
 
       const newVisit = await response.json();
-      const staffName = staffList.find(s => s._id === newVisit.data.staff)?.fullname || "Staff not assigned";
+      const staffName = staffList.find(s => s._id === addFormData.staff)?.fullname || "Staff not assigned";
 
-      // Optimistically update the UI
+      // Update visits state with new visit including staff name
       setVisits(prev => [{
         id: newVisit.data._id,
         clientName: newVisit.data.client?.fullname || addFormData.clientEmail,
@@ -320,6 +326,7 @@ export function VisitPage() {
         type: newVisit.data.type || addFormData.type,
         status: newVisit.data.status || "pending",
         address: addFormData.address,
+        notes: newVisit.data.notes || "",
       }, ...prev]);
 
       toast.success("Visit added successfully");
@@ -380,7 +387,7 @@ export function VisitPage() {
       if (!response.ok) throw new Error("Failed to update visit");
 
       const updatedVisit = await response.json();
-      const staffName = staffList.find(s => s._id === updatedVisit.data.staff)?.fullname || "Staff not assigned";
+      const staffName = staffList.find(s => s._id === editFormData.staff)?.fullname || "Staff not assigned";
 
       // Update the visit in state
       setVisits(prev =>
@@ -482,21 +489,6 @@ export function VisitPage() {
         )
       );
 
-      // Update staff list in real-time
-      const staffResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!staffResponse.ok) throw new Error("Failed to fetch updated staff");
-      const { data: updatedStaffData } = await staffResponse.json();
-      setStaffList(updatedStaffData);
-
       toast.success("Staff assigned successfully");
       setIsAssignStaffOpen(false);
       setCurrentVisit(null);
@@ -588,6 +580,12 @@ export function VisitPage() {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader title="Visit Management" />
@@ -645,7 +643,7 @@ export function VisitPage() {
                   filteredVisits.map((visit) => (
                     <TableRow key={visit.id}>
                       <TableCell className="font-medium">
-                        {String(visit.id).slice(-4)} 
+                        {String(visit.id).slice(-4)}
                       </TableCell>
                       <TableCell>{visit.clientName}</TableCell>
                       <TableCell>{visit.staffName}</TableCell>
@@ -732,6 +730,51 @@ export function VisitPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm">
+              <div>
+                Showing {(page - 1) * pageSize + 1} to{" "}
+                {Math.min(page * pageSize, totalPages * pageSize)} of{" "}
+                {totalPages * pageSize} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === 1}
+                  onClick={() => handlePageChange(page - 1)}
+                >
+                  <span className="sr-only">Previous page</span>
+                  &lt;
+                </Button>
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                  (pageNumber) => (
+                    <Button
+                      key={pageNumber}
+                      variant="outline"
+                      size="sm"
+                      className={`h-8 w-8 p-0 ${page === pageNumber ? "bg-yellow-100" : ""
+                        }`}
+                      onClick={() => handlePageChange(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Button>
+                  )
+                )}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === totalPages}
+                  onClick={() => handlePageChange(page + 1)}
+                >
+                  <span className="sr-only">Next page</span>
+                  &gt;
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

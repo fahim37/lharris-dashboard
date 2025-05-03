@@ -129,6 +129,7 @@ const PaginationComponent: React.FC<PaginationProps> = ({
                 <PaginationItem>
                     <PaginationPrevious
                         href="#"
+                        /* eslint-disable @typescript-eslint/no-explicit-any */
                         onClick={(e: any) => handleClick(e, currentPage - 1)}
                         aria-disabled={currentPage === 1}
                         className={cn(currentPage === 1 && "opacity-50 cursor-not-allowed")}
@@ -157,6 +158,7 @@ const PaginationComponent: React.FC<PaginationProps> = ({
                 <PaginationItem>
                     <PaginationNext
                         href="#"
+                        /* eslint-disable @typescript-eslint/no-explicit-any */
                         onClick={(e: any) => handleClick(e, currentPage + 1)}
                         aria-disabled={currentPage === totalPages}
                         className={cn(

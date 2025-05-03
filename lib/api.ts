@@ -1,6 +1,8 @@
-const BASE_URL = "http://localhost:5100/api/v1";
-const TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4ZjMwMzY0NzhjZDFjMTZmZjllNiIsImlhdCI6MTc0NTQxMDI4OCwiZXhwIjoxNzQ2MDE1MDg4fQ.ltTU0CKqhMUPzKnZXiW2nSZrUXYTwNwMEChC0fcZTCk";
+
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
+// const session = useSession();
+// const TOKEN = session?.data?.accessToken
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTE5N2M4YWU2NzVkOGUyZmMyYjg0YyIsImlhdCI6MTc0NjE1NjUyMSwiZXhwIjoxNzQ2NzYxMzIxfQ.FpDyOuqdii2j6wSvzsk13FWGBIcq5GWwd8q89g8fM-k";
 
 // Helper function for API calls
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
@@ -64,7 +66,7 @@ export async function getRevenueGrowth() {
   return fetchAPI("/admin/metrics/revenue-growth");
 }
 
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function createVisit(visitData: any) {
   return fetchAPI("/visits/admin/create-visit", {
     method: "POST",
@@ -95,7 +97,7 @@ export async function getCompletedVisits(userId: string) {
 export async function getCancelledVisits(userId: string) {
   return fetchAPI(`/visits/admin/get-cancelled-visits/${userId}`);
 }
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function updateVisit(visitId: string, visitData: any) {
   return fetchAPI(`/visits/admin/update-visit/${visitId}`, {
     method: "PATCH",
@@ -172,13 +174,14 @@ export async function getUsersByStatus(status: string) {
   return fetchAPI(`/admin/user-by-status/${status}`);
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function addUser(userData: any) {
   return fetchAPI("/admin/add-user", {
     method: "POST",
     body: JSON.stringify(userData),
   });
 }
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function updateUser(userId: string, userData: any) {
   return fetchAPI(`/admin/update-user/${userId}`, {
     method: "PUT",
@@ -202,4 +205,17 @@ export async function addPlan(planData: { name: string; price: number }) {
 
 export async function getAllPlans() {
   return fetchAPI("/plans/get-all-plans");
+}
+
+export async function deletePlan(planId: string) {
+  return fetchAPI(`/plans/delete-plan/${planId}`, {
+    method: "DELETE",
+  });
+}
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function updatePlan(planId: string, planData: any) {
+  return fetchAPI(`/plans/update-plan/${planId}`, {
+    method: "PATCH",
+    body: JSON.stringify(planData),
+  });
 }

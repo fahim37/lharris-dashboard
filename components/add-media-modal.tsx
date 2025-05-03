@@ -14,8 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useSession } from "next-auth/react"
 
 interface AddMediaModalProps {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    medias: any
     open: boolean
     onOpenChange: (open: boolean) => void
 }
@@ -29,7 +32,7 @@ const formSchema = z.object({
     issueDate: z.string().min(1, "Issue date is required"),
 })
 
-export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
+export function AddMediaModal({ open, onOpenChange, medias }: AddMediaModalProps) {
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -49,13 +52,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
         },
     })
 
-    const TOKEN =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAxNDQ5MCwiZXhwIjoxNzQ2NjE5MjkwfQ.zEwXACeEAghX8fhlWT8bSJ68uGQBlNqF_4tU-fh_9qs";
+    const session = useSession();
 
-    const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${TOKEN}`,
-    };
+    const TOKEN = session.data?.accessToken;
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -71,7 +70,6 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
-
         try {
             const formData = new FormData()
             // Add text fields
@@ -96,7 +94,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                 {
                     method: "PATCH",
                     headers: {
-                        Authorization: `Bearer ${TOKEN}`, // Keep the Authorization header
+                        Authorization: `Bearer ${TOKEN}`,
                     },
                     body: formData,
                 },
@@ -116,6 +114,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
             setIsSubmitting(false)
         }
     }
+
+    console.log(medias)
+
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,7 +146,12 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="sozibdbcalling2025@gmail.com">sozibbdcalling2025@gmail.com</SelectItem>
+                                                {
+                                                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                                                    medias?.map((user: any, index: number) => (
+                                                        <SelectItem key={index} value={user?.client?.email}>{user?.client?.email}</SelectItem>
+                                                    ))
+                                                }
                                             </SelectContent>
                                         </Select>
                                     </div>
