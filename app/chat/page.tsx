@@ -36,9 +36,9 @@ export default function AdminChatPage() {
       socket.emit("joinRoom", activeConversation._id);
 
       socket.on("newMessage", (newMessage: Message) => {
-        setMessages((prev) => [...prev, newMessage])
-        console.log("newMessage", newMessage);}
-      );
+        setMessages((prev) => [...prev, newMessage]);
+        console.log("newMessage", newMessage);
+      });
 
       return () => {
         disconnectSocket();
