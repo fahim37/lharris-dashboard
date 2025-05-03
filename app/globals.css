@@ -91,6 +91,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -168,3 +169,127 @@
 .pagination-nav.disabled {
   @apply opacity-50 cursor-not-allowed;
 }
+
+
+
+
+/* QuillEditor style start */
+
+.list-item {
+  @apply text-base leading-relaxed;
+}
+
+/* List container styling */
+.list-item ul {
+  @apply pl-5;
+  /* Padding for indentation */
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.list-item ol {
+  @apply pl-5;
+  /* Padding for indentation */
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+/* List item styling */
+.list-item ul li,
+.list-item ol li {
+  @apply mb-2;
+  /* Space between list items */
+  position: relative;
+  /* For custom markers */
+}
+
+/* Custom bullet points for unordered lists */
+.list-item ul li::before {
+  content: "•";
+  @apply text-gray-700;
+  position: absolute;
+  left: -1em;
+}
+
+/* Custom numbers for ordered lists */
+.list-item ol {
+  counter-reset: item;
+}
+
+.list-item ol li {
+  counter-increment: item;
+}
+
+.list-item ol li::before {
+  content: counter(item) ".";
+  @apply text-gray-700;
+  position: absolute;
+  left: -1em;
+}
+
+/* Heading styles */
+.list-item h1,
+.list-item h2,
+.list-item h3,
+.list-item h4,
+.list-item h5,
+.list-item h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.list-item h1 {
+  @apply text-3xl;
+}
+
+.list-item h2 {
+  @apply text-2xl;
+}
+
+.list-item h3 {
+  @apply text-xl;
+}
+
+.list-item h4 {
+  @apply text-lg;
+}
+
+.list-item h5 {
+  @apply text-base;
+}
+
+.list-item h6 {
+  @apply text-sm;
+}
+
+/* Nested list styling */
+.list-item ul ul,
+.list-item ol ol,
+.list-item ul ol,
+.list-item ol ul {
+  @apply pl-5;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+ol {
+
+  padding-left: 1.5rem;
+  /* Indent the list */
+
+  list-style-type: disc;
+  /* Bullet style for <ul> */
+
+  list-style-position: outside;
+
+}
+
+
+/* Remove default markers */
+.list-item ::marker {
+  display: none;
+  content: none;
+}
+
+/* QuillEditor style end */

@@ -377,7 +377,6 @@ export default function DashboardPage() {
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  console.log("matricsData", matricsData);
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -392,7 +391,6 @@ export default function DashboardPage() {
         }
         const data = await response.json();
         setMetricsData(data?.data);
-        // console.log("Metrics data:", data);
 
         // Update metrics with data from API
         setMetrics({

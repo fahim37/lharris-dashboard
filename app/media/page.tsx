@@ -10,6 +10,7 @@ import PaginationComponent from "@/components/pagination";
 import { toast } from "sonner";
 import { AddMediaModal } from "@/components/add-media-modal";
 import { useSession } from "next-auth/react";
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 interface Visit {
@@ -36,7 +37,7 @@ interface Visit {
 
 interface Visits {
   data: Visit[];
-  meta: {
+  pagination: {
     currentPage: number;
     totalPages: number;
     totalItems: number;
@@ -53,13 +54,15 @@ export default function MediaPage() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteMediaOpen, setIsDeleteMediaOpen] = useState(false)
+  
 
   const openModal = () => setIsModalOpen(true)
   // const closeModal = () => setIsModalOpen(false)
 
   const [visits, setVisits] = useState<Visits>({
     data: [],
-    meta: {
+    pagination: {
       currentPage: 0,
       totalPages: 0,
       totalItems: 0,
@@ -104,7 +107,8 @@ export default function MediaPage() {
 
   useEffect(() => {
     getAllVisits();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
 
@@ -132,10 +136,8 @@ export default function MediaPage() {
       getAllVisits();
       toast.success("Visit deleted successfully");
     }
+    setIsDeleteMediaOpen(false)
   }
-
-  console.log(visits)
-
 
 
   return (
@@ -239,10 +241,37 @@ export default function MediaPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDeleteVisit(item._id)}
+                            onClick={() => setIsDeleteMediaOpen(true)}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
+                          {/* Delete Package Dialog */}
+                          <Dialog open={isDeleteMediaOpen} onOpenChange={setIsDeleteMediaOpen}>
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center">
+                                  <div className="bg-[#0a1172] mb-5 text-white p-1 rounded-full mr-2">
+                                    <Trash className="h-6 w-6" />
+                                  </div>
+                                  Are you sure you want to delete this package?
+                                </DialogTitle>
+                              </DialogHeader>
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="outline">
+                                    Cancel
+                                  </Button>
+                                </DialogClose>
+                                <Button
+                                  type="button"
+                                  className="bg-[#0a1172] hover:bg-[#1a2182]"
+                                  onClick={() => handleDeleteVisit(item._id)}
+                                >
+                                  Delete
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -250,11 +279,11 @@ export default function MediaPage() {
                 </TableBody>
               </Table>
               <PaginationComponent
-                currentPage={page || 1}
-                totalPages={visits?.meta?.totalPages || 1}
+                currentPage={visits?.pagination?.currentPage || page}
+                totalPages={visits?.pagination?.totalPages}
                 onPageChange={handlePageChange}
-                totalItems={visits?.meta?.totalItems || 0}
-                itemsPerPage={visits?.meta?.itemsPerPage || 0}
+                totalItems={visits?.pagination?.totalItems}
+                itemsPerPage={visits?.pagination?.itemsPerPage}
               />
             </div>
           </div>

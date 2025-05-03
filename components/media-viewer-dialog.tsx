@@ -15,6 +15,7 @@ import { Badge } from "./ui/badge";
 import { useState } from "react";
 import { Input } from "./ui/input";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 interface MediaViewerDialogProps {
     /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -54,6 +55,8 @@ export function MediaViewerDialog({
                 body: JSON.stringify({ status: "completed", notes: noteOfVisit }),
             }
         )
+        toast.success("Visit approved successfully")
+        onOpenChange(false)
     }
 
 
@@ -67,6 +70,8 @@ export function MediaViewerDialog({
                 body: JSON.stringify({ status: "cancelled", cancellationReason: noteOfVisit }),
             }
         )
+        toast.success("Visit rejected successfully")
+        onOpenChange(false)
     }
 
     return (
@@ -190,7 +195,7 @@ export function MediaViewerDialog({
                         Approve
                     </Button>
                     <Button
-                        className="bg-[#BFBFBF] w-28"
+                        className="bg-[#BFBFBF] w-28 text-red-500"
                         onClick={handleRejectVisit}
                     >
                         Reject
