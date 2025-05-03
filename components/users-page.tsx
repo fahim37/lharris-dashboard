@@ -17,8 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Pencil, Trash2, Users, } from "lucide-react"
+import { Pencil, Trash2, Users } from "lucide-react"
 import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 
 // Interfaces
 interface User {
@@ -33,6 +34,11 @@ interface User {
 interface ApiResponse<T> {
   status: boolean
   data: T
+  pagination?: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+  }
 }
 
 interface UserFormData {
@@ -42,21 +48,14 @@ interface UserFormData {
   role: string
 }
 
-// API functions
-const API_BASE_URL = "http://localhost:5001/api/v1/admin"
-const TOKEN =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8"
-
-const headers = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${TOKEN}`,
-}
-
-const getAllUsers = async (): Promise<ApiResponse<User[]>> => {
+const getAllUsers = async (token: string, page: number = 1, limit: number = 10): Promise<ApiResponse<User[]>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/all-user`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${page}&limit=${limit}`, {
       method: "GET",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     if (!response.ok) {
@@ -70,11 +69,14 @@ const getAllUsers = async (): Promise<ApiResponse<User[]>> => {
   }
 }
 
-const addUser = async (userData: UserFormData): Promise<ApiResponse<User>> => {
+const addUser = async (userData: UserFormData, token: string): Promise<ApiResponse<User>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/add-user`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/add-user`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(userData),
     })
 
@@ -89,11 +91,14 @@ const addUser = async (userData: UserFormData): Promise<ApiResponse<User>> => {
   }
 }
 
-const updateUser = async (userId: string, userData: Partial<UserFormData>): Promise<ApiResponse<User>> => {
+const updateUser = async (userId: string, userData: Partial<UserFormData>, token: string): Promise<ApiResponse<User>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/update-user/${userId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${userId}`, {
       method: "PUT",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(userData),
     })
 
@@ -108,11 +113,14 @@ const updateUser = async (userId: string, userData: Partial<UserFormData>): Prom
   }
 }
 
-const deleteUser = async (userId: string): Promise<ApiResponse<null>> => {
+const deleteUser = async (userId: string, token: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/delete-user/${userId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${userId}`, {
       method: "DELETE",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     if (!response.ok) {
@@ -136,6 +144,10 @@ export function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [totalPages, setTotalPages] = useState<number>(1)
+  const [itemsPerPage] = useState<number>(9)
+  const { data: session, status } = useSession()
   const [newUser, setNewUser] = useState<UserFormData>({
     fullname: "",
     email: "",
@@ -150,14 +162,20 @@ export function UsersPage() {
   })
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    if (status === "authenticated" && session?.accessToken) {
+      fetchUsers(session.accessToken, currentPage)
+    }
+  }, [status, session, currentPage])
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (token: string, page: number) => {
     try {
-      const response = await getAllUsers()
+      const response = await getAllUsers(token, page, itemsPerPage)
       if (response.status && response.data) {
         setUsers(response.data)
+        if (response.pagination) {
+          setTotalPages(response.pagination.totalPages)
+          setCurrentPage(response.pagination.currentPage)
+        }
       }
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -178,11 +196,16 @@ export function UsersPage() {
   })
 
   const handleAddUser = async () => {
+    if (status !== "authenticated" || !session?.accessToken) {
+      toast.error("Not authenticated")
+      return
+    }
+
     try {
-      await addUser(newUser)
+      await addUser(newUser, session.accessToken)
       toast.success("User added successfully")
       setIsAddUserOpen(false)
-      fetchUsers()
+      fetchUsers(session.accessToken, currentPage)
       setNewUser({
         fullname: "",
         email: "",
@@ -196,13 +219,16 @@ export function UsersPage() {
   }
 
   const handleEditUser = async () => {
-    if (!currentUser) return
+    if (!currentUser || status !== "authenticated" || !session?.accessToken) {
+      toast.error("Not authenticated or no user selected")
+      return
+    }
 
     try {
-      await updateUser(currentUser._id, editUser)
+      await updateUser(currentUser._id, editUser, session.accessToken)
       toast.success("User updated successfully")
       setIsEditUserOpen(false)
-      fetchUsers()
+      fetchUsers(session.accessToken, currentPage)
     } catch (error) {
       console.error("Error updating user:", error)
       toast.error("Failed to update user")
@@ -215,14 +241,17 @@ export function UsersPage() {
   }
 
   const handleDeleteUser = async () => {
-    if (!userToDelete) return
+    if (!userToDelete || status !== "authenticated" || !session?.accessToken) {
+      toast.error("Not authenticated or no user selected")
+      return
+    }
 
     try {
-      await deleteUser(userToDelete)
+      await deleteUser(userToDelete, session.accessToken)
       toast.success("User deleted successfully")
       setIsDeleteDialogOpen(false)
       setUserToDelete(null)
-      fetchUsers()
+      fetchUsers(session.accessToken, currentPage)
     } catch (error) {
       console.error("Error deleting user:", error)
       toast.error("Failed to delete user")
@@ -260,6 +289,20 @@ export function UsersPage() {
     } else {
       setEditUser((prev) => ({ ...prev, [name]: value }))
     }
+  }
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
+
+  if (status === "loading") {
+    return <div>Loading...</div>
+  }
+
+  if (status === "unauthenticated") {
+    return <div>Please log in to view this page.</div>
   }
 
   return (
@@ -311,7 +354,7 @@ export function UsersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>S.No</TableHead> {/* Added Serial Number */}
+                  <TableHead>S.No</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
@@ -324,7 +367,7 @@ export function UsersPage() {
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user, index) => (
                     <TableRow key={user._id}>
-                      <TableCell>{index + 1}</TableCell> {/* Serial Number */}
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>{user.fullname}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>
@@ -372,6 +415,52 @@ export function UsersPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 text-sm">
+              <div>
+                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(
+                  currentPage * itemsPerPage,
+                  (totalPages * itemsPerPage)
+                )}{" "}
+                of {(totalPages * itemsPerPage)} results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  <span className="sr-only">Previous page</span>&lt;
+                </Button>
+                {Array.from(
+                  { length: totalPages },
+                  (_, index) => index + 1
+                ).map((page) => (
+                  <Button
+                    key={page}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  <span className="sr-only">Next page</span>&gt;
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -425,7 +514,6 @@ export function UsersPage() {
               <Input
                 id="password"
                 type="password"
-               
                 value={newUser.password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
@@ -473,7 +561,7 @@ export function UsersPage() {
               onClick={() => setIsEditUserOpen(false)}
               className="absolute right-4 top-4"
             >
-              
+              {/* <X className="h-4 w-4" /> */}
             </Button>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -505,7 +593,6 @@ export function UsersPage() {
               <Input
                 id="password"
                 type="password"
-               
                 value={editUser.password}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
               />
@@ -543,8 +630,7 @@ export function UsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user and remove their data from our
-              servers.
+              This action cannot be undone. This will permanently delete the user and remove their data from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
