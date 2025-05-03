@@ -8,13 +8,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Check, Plus, Pencil, Trash } from "lucide-react"
+import { Check, Plus, Pencil, Trash, Eye, Download } from "lucide-react"
 import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans, deletePlan, updatePlan } from "@/lib/api"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { useSession } from "next-auth/react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
+import { cn } from "@/lib/utils"
+import PaginationComponent from "./pagination"
+import { PaymentDetailsModal } from "./payment-details-modal"
+import { generatePaymentPDF } from "@/lib/generate-pdf"
+import QuillEditor from "./QuillEditor"
 
 interface Plan {
   _id: string
@@ -23,12 +30,38 @@ interface Plan {
   description: string
   pack?: string
   addsOnServices?: Array<{
+    text: string
     _id: string
     addOn: string
     price: number
     startDate: string | null
     endDate: string | null
   }>
+}
+
+
+interface Payment {
+  amount: number
+  createdAt: string
+  formattedAmount: string
+  id: string
+  paymentDate: string
+  paymentMethod: string
+  plan: string
+  status: string
+  transactionId: string
+  user: string
+  visit: string
+}
+
+interface Payments {
+  data: Payment[]
+  pagination: {
+    currentPage: number
+    itemsPerPage: number
+    totalItems: number
+    totalPages: number
+  }
 }
 
 const formSchema = z.object({
@@ -45,7 +78,44 @@ export function PricingPage() {
   const [isAddPackageOpen, setIsAddPackageOpen] = useState(false)
   const [isEditPackageOpen, setIsEditPackageOpen] = useState(false)
   const [isDeletePackageOpen, setIsDeletePackageOpen] = useState(false)
+  const [page, setPage] = useState(1)
   const [selectedPlanId, setSelectedPlanId] = useState("")
+  const limit = 10
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const [selectedPayment, setSelectedPayment] = useState<any>(null)
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+  const handleViewPaymentDetails = (payment: any) => {
+    setSelectedPayment(payment)
+    setIsModalOpen(true)
+  }
+/* eslint-disable @typescript-eslint/no-explicit-any */
+  const handleDownloadPaymentDetails = (payment: any) => {
+    try {
+      const doc = generatePaymentPDF(payment)
+
+      // Generate filename with transaction ID
+      const filename = `payment-receipt-${payment.transactionId}.pdf`
+
+      // Save the PDF
+      doc.save(filename)
+
+      toast.success("Payment receipt downloaded successfully")
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast.error("Failed to download payment receipt")
+    }
+  }
+
+  const [payments, setPayments] = useState<Payments>({
+    data: [],
+    pagination: {
+      currentPage: 1, itemsPerPage: 10, totalItems: 0, totalPages: 0
+    }
+  })
+
   const [metrics, setMetrics] = useState({
     activePlans: 0,
     monthlyRevenue: 0,
@@ -63,7 +133,6 @@ export function PricingPage() {
     },
   })
 
-  console.log(metrics)
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -124,30 +193,75 @@ export function PricingPage() {
 
   const handleEditPlan = async (data: FormData) => {
     try {
-      await updatePlan(selectedPlanId, data)
-      toast.success("Plan updated successfully")
-      setIsEditPackageOpen(false)
+      // Ensure description is properly sanitized if needed
+      const updateData = {
+        ...data,
+        description: data.description || '', // Ensure description exists
+      };
+
+      await updatePlan(selectedPlanId, updateData);
+      toast.success("Plan updated successfully");
+      setIsEditPackageOpen(false);
+
       // Refresh plans
-      const plansRes = await getAllPlans()
+      const plansRes = await getAllPlans();
       if (plansRes.data && Array.isArray(plansRes.data)) {
-        setPlans(plansRes.data)
+        setPlans(plansRes.data);
       }
+
+      // Reset the form after successful update
+      form.reset();
     } catch (error) {
-      console.error("Error updating plan:", error)
-      toast.error("Failed to update plan")
+      console.error("Error updating plan:", error);
+      toast.error("Failed to update plan");
     }
+  };
+
+  const handleEditClick = (plan: Plan) => {
+    setSelectedPlanId(plan._id);
+    setEditingPlan(plan);
+    form.reset({
+      name: plan.name,
+      price: plan.price,
+      description: plan.description,
+      pack: plan.pack as "weekly" | "monthly" | "daily",
+    });
+    setIsEditPackageOpen(true);
+  };
+
+  const session = useSession()
+
+
+  const getPayments = async () => {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/payments/all?page=${page}&limit=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.data?.accessToken}`,
+        }
+      }
+    )
+
+    const data = await res.json()
+    return setPayments(data);
+
   }
 
-  // const handleEditClick = (plan: Plan) => {
-  //   setSelectedPlanId(plan._id)
-  //   form.reset({
-  //     name: plan.name,
-  //     price: plan.price,
-  //     description: plan.description,
-  //     pack: plan.pack as "weekly" | "monthly" | "daily",
-  //   })
-  //   setIsEditPackageOpen(true)
-  // }
+
+  useEffect(() => {
+    getPayments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+
+
 
   return (
     <div className="flex flex-col h-full">
@@ -180,9 +294,9 @@ export function PricingPage() {
 
         <Tabs defaultValue="plans">
           <div className="flex justify-between items-center mb-4">
-            <TabsList>
-              <TabsTrigger value="plans">Security Plans</TabsTrigger>
-              <TabsTrigger value="payment-history">Payment History</TabsTrigger>
+            <TabsList className="bg-white py-7 rounded-full gap-5">
+              <TabsTrigger value="plans" className="data-[state=active]:bg-[#091057] py-3 px-7 rounded-3xl data-[state=active]:text-[#F7E39F]">Security Plans</TabsTrigger>
+              <TabsTrigger value="payment-history" className="data-[state=active]:bg-[#091057] py-3 px-7 rounded-3xl data-[state=active]:text-[#F7E39F]">Payment History</TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button
@@ -211,22 +325,15 @@ export function PricingPage() {
                         <CardDescription className="text-lg font-semibold text-[#000000] capitalize">${plan.price} / {plan.pack}</CardDescription>
                       </CardHeader>
                       <CardContent className="pb-2">
-                        <ul className="space-y-2 text-sm pb-2">
-                          <li className="text-base pb-1">{plan.description}</li>
-                          {plan.addsOnServices &&
-                            plan.addsOnServices.map((addon) => (
-                              <li key={addon._id} className="flex items-center">
-                                <Check className="h-4 w-4 mr-2 text-green-600" />
-                                {addon.addOn} (${addon.price})
-                              </li>
-                            ))}
-                          {(!plan.addsOnServices || plan.addsOnServices.length === 0) && (
-                            <li className="flex items-center">
-                              <Check className="h-4 w-4 mr-2 text-green-600" />
-                              Basic security monitoring
-                            </li>
-                          )}
-                        </ul>
+                        <div className="">
+                          <h3>Features: </h3>
+                        </div>
+                        <div
+                          className="list-item list-none"
+                          dangerouslySetInnerHTML={{
+                            __html: plan?.description || "Plan Description",
+                          }}
+                        />
                       </CardContent>
                       <CardFooter className="flex items-center gap-2 text-base">
                         <Button
@@ -234,6 +341,7 @@ export function PricingPage() {
                           onClick={() => {
                             setIsEditPackageOpen(true)
                             setSelectedPlanId(plan._id)
+                            handleEditClick(plan)
                           }
                           }
                           className="bg-[#091057] text-[#F7E39F]"
@@ -261,77 +369,89 @@ export function PricingPage() {
           </TabsContent>
 
           <TabsContent value="payment-history" className="mt-0">
-            <div className="bg-white rounded-md shadow-sm p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between">
-                      <span>Discount 1</span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">10% Off</span>
-                    </CardTitle>
-                    <CardDescription>WELCOME10</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      10% off for new customers. Valid for the first 3 months.
-                    </p>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditDiscountOpen(true)}>
-                      Edit
-                    </Button>
-                    <Button className="bg-[#0a1172] hover:bg-[#1a2182]" size="sm">
-                      View Details
-                    </Button>
-                  </CardFooter>
-                </Card>
+            <div className="space-y-6">
+              <div className="rounded-md border overflow-hidden">
+                {payments?.data?.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-muted-foreground">No payments found.</p>
+                  </div>
+                )
+                  : (
 
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between">
-                      <span>Discount 2</span>
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">15% Off</span>
-                    </CardTitle>
-                    <CardDescription>ANNUAL15</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      15% off for annual subscriptions. Valid for all plans.
-                    </p>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditDiscountOpen(true)}>
-                      Edit
-                    </Button>
-                    <Button className="bg-[#0a1172] hover:bg-[#1a2182]" size="sm">
-                      View Details
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex justify-between">
-                      <span>Discount 3</span>
-                      <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">20% Off</span>
-                    </CardTitle>
-                    <CardDescription>LOYALTY20</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="text-sm text-muted-foreground">
-                      20% off for loyal customers. Valid after 1 year of subscription.
-                    </p>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" size="sm" onClick={() => setIsEditDiscountOpen(true)}>
-                      Edit
-                    </Button>
-                    <Button className="bg-[#0a1172] hover:bg-[#1a2182]" size="sm">
-                      View Details
-                    </Button>
-                  </CardFooter>
-                </Card>
+                    <div className="overflow-x-auto">
+                      <Table className="min-w-[800px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px] pl-10">Transaction ID</TableHead>
+                            <TableHead className="text-center">Date</TableHead>
+                            <TableHead className="text-center">Visit Time</TableHead>
+                            <TableHead className="text-center">Amount</TableHead>
+                            <TableHead className="text-center">Type</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-center">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {payments?.data?.map((item: Payment) => (
+                            <TableRow key={item.id} className="text-center">
+                              <TableCell className="font-medium pl-3 text-start">{item.transactionId}</TableCell>
+                              <TableCell>
+                                {new Date(item.paymentDate).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(item.paymentDate).toLocaleTimeString("en-US", {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </TableCell>
+                              <TableCell>{item.formattedAmount}</TableCell>
+                              <TableCell className="capitalize">{item?.plan || "N/A"}</TableCell>
+                              <TableCell className="max-w-[200px]">
+                                <span
+                                  className={cn("px-2 py-1 rounded-full text-xs font-medium", {
+                                    "bg-[#B3E9C9] text-[#033618]": item?.status === "completed",
+                                    "bg-[#FFD6D6] text-[#5C0000]": item?.status === "failed",
+                                    "bg-[#FFF3CD] text-[#856404]": item?.status === "pending",
+                                    "bg-[#CCE5FF] text-[#004085]": item?.status === "refunded",
+                                  })}
+                                >
+                                  {item?.status === "completed" ? "Paid" : item?.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-center gap-2">
+                                  <Button variant="ghost" size="icon" onClick={() => handleViewPaymentDetails(item)}>
+                                    <Eye className="h-4 w-4" />
+                                    <span className="sr-only">View payment details</span>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleDownloadPaymentDetails(item)}>
+                                    <Download className="h-4 w-4" />
+                                    <span className="sr-only">Download payment receipt</span>
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <PaginationComponent
+                        totalItems={payments?.pagination?.totalItems}
+                        itemsPerPage={payments?.pagination?.itemsPerPage}
+                        currentPage={payments?.pagination?.currentPage}
+                        totalPages={payments?.pagination?.totalPages}
+                        onPageChange={handlePageChange}
+                      />
+                    </div>
+                  )
+                }
               </div>
+
+              <PaymentDetailsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} payment={selectedPayment} />
             </div>
           </TabsContent>
         </Tabs>
@@ -388,7 +508,13 @@ export function PricingPage() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter description" {...field} />
+                      <div className="border rounded-md">
+                        <QuillEditor
+                          id="description"
+                          value={field.value}
+                          onChange={(value) => field.onChange(value)}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -439,7 +565,7 @@ export function PricingPage() {
               <div className="bg-[#0a1172] text-white p-1 rounded-full mr-2">
                 <Pencil className="h-5 w-5" />
               </div>
-              Edit Plan
+              Edit Plan: {editingPlan?.name}
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -451,7 +577,10 @@ export function PricingPage() {
                   <FormItem>
                     <FormLabel>Package Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter package name" {...field} />
+                      <Input
+                        placeholder={editingPlan?.name || "Enter package name"}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -482,7 +611,13 @@ export function PricingPage() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter description" {...field} />
+                      <div className="border rounded-md">
+                        <QuillEditor
+                          id="description"
+                          value={field.value}
+                          onChange={(value) => field.onChange(value)}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -115,8 +115,6 @@ export function AddMediaModal({ open, onOpenChange, medias }: AddMediaModalProps
         }
     }
 
-    console.log(medias)
-
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
