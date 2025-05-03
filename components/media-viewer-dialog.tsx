@@ -1,5 +1,6 @@
 "use client";
 
+
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
 import { Badge } from "./ui/badge";
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { useSession } from "next-auth/react";
 
 interface MediaViewerDialogProps {
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -28,46 +30,45 @@ interface MediaViewerDialogProps {
 }
 
 export async function MediaViewerDialog({
-  media,
-  open,
-  onOpenChange,
+    media,
+    open,
+    onOpenChange,
 }: MediaViewerDialogProps) {
   const [noteOfVisit, setNoteOfVisit] = useState<string>("");
 
-  console.log(media);
+    console.log(media)
 
-  // Approve visit
-  const handleApproveVisit = async () => {
-    await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-        },
-        body: JSON.stringify({ status: "completed", notes: noteOfVisit }),
-      }
-    );
-  };
 
-  // Reject visit
-  const handleRejectVisit = async () => {
-    await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-        },
-        body: JSON.stringify({
-          status: "cancelled",
-          cancellationReason: noteOfVisit,
-        }),
-      }
-    );
-  };
+    // Approve visit
+    const handleApproveVisit = async () => {
+        await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`
+                },
+                body: JSON.stringify({ status: "completed", notes: noteOfVisit }),
+            }
+        )
+    }
+
+
+    // Reject visit
+    const handleRejectVisit = async () => {
+        await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`
+                },
+                body: JSON.stringify({ status: "cancelled", cancellationReason: noteOfVisit }),
+            }
+        )
+    }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

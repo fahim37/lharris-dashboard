@@ -8,33 +8,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useSession } from "next-auth/react"
 
 interface AddMediaModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    medias: any
+    open: boolean
+    onOpenChange: (open: boolean) => void
 }
 
 const formSchema = z.object({
@@ -46,10 +32,10 @@ const formSchema = z.object({
   issueDate: z.string().min(1, "Issue date is required"),
 });
 
-export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function AddMediaModal({ open, onOpenChange, medias }: AddMediaModalProps) {
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [videoFile, setVideoFile] = useState<File | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -66,13 +52,9 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
     },
   });
 
-  const TOKEN =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4MmVlMDAyYjZkZWZjZDk4ZDdiYyIsImlhdCI6MTc0NjAxNDQ5MCwiZXhwIjoxNzQ2NjE5MjkwfQ.zEwXACeEAghX8fhlWT8bSJ68uGQBlNqF_4tU-fh_9qs";
+    const session = useSession();
 
-  // const headers = {
-  //     "Content-Type": "application/json",
-  //     Authorization: `Bearer ${TOKEN}`,
-  // };
+    const TOKEN = session.data?.accessToken;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -86,18 +68,17 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true);
-
-    try {
-      const formData = new FormData();
-      // Add text fields
-      formData.append("email", values.email);
-      formData.append("place", values.place);
-      formData.append("issue", values.issue);
-      formData.append("type", values.type);
-      formData.append("notes", values.notes || "");
-      formData.append("issueDate", values.issueDate);
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        setIsSubmitting(true)
+        try {
+            const formData = new FormData()
+            // Add text fields
+            formData.append("email", values.email)
+            formData.append("place", values.place)
+            formData.append("issue", values.issue)
+            formData.append("type", values.type)
+            formData.append("notes", values.notes || "")
+            formData.append("issueDate", values.issueDate)
 
       // Add files if selected
       if (imageFile) {
@@ -108,6 +89,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
         formData.append("video", videoFile);
       }
 
+<<<<<<< HEAD
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/update-add-issue`,
         {
@@ -116,6 +98,31 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
             Authorization: `Bearer ${TOKEN}`, // Keep the Authorization header
           },
           body: formData,
+=======
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/update-add-issue`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${TOKEN}`,
+                    },
+                    body: formData,
+                },
+            )
+
+            if (response.ok) {
+                onOpenChange(false)
+                form.reset()
+                setImageFile(null)
+                setVideoFile(null)
+            } else {
+                console.error("Failed to submit form")
+            }
+        } catch (error) {
+            console.error("Error submitting form:", error)
+        } finally {
+            setIsSubmitting(false)
+>>>>>>> 1cccc9db82b560ec7d5f5630b41717ed06071ea4
         }
       );
 
@@ -134,6 +141,7 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
     }
   };
 
+<<<<<<< HEAD
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] md:max-w-[600px] p-0 overflow-hidden">
@@ -181,6 +189,51 @@ export function AddMediaModal({ open, onOpenChange }: AddMediaModalProps) {
                 </FormItem>
               )}
             />
+=======
+    console.log(medias)
+
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[500px] md:max-w-[600px] p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-2">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-[#0a1172] rounded-full p-2 flex items-center justify-center">
+                            <Upload className="text-white h-5 w-5" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold text-[#0a1172]">Add Media</DialogTitle>
+                    </div>
+                </DialogHeader>
+
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6 pt-2">
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2">
+                                    <FormLabel className="text-gray-700 sm:col-span-1">Client Email :</FormLabel>
+                                    <div className="sm:col-span-3">
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select Client" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {
+                                                    /* eslint-disable @typescript-eslint/no-explicit-any */
+                                                    medias?.map((user: any, index: number) => (
+                                                        <SelectItem key={index} value={user?.client?.email}>{user?.client?.email}</SelectItem>
+                                                    ))
+                                                }
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+>>>>>>> 1cccc9db82b560ec7d5f5630b41717ed06071ea4
 
             <FormField
               control={form.control}
