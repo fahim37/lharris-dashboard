@@ -4,14 +4,27 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaViewerDialog } from "@/components/media-viewer-dialog";
 import { Eye, Trash } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import PaginationComponent from "@/components/pagination";
 import { toast } from "sonner";
 import { AddMediaModal } from "@/components/add-media-modal";
 import { useSession } from "next-auth/react";
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Visit {
   _id: string;
@@ -19,12 +32,12 @@ interface Visit {
     _id: string;
     fullname: string;
     email: string;
-  },
+  };
   staff: null | {
     _id: string;
     fullname: string;
     email: string;
-  },
+  };
   date: string;
   status: string;
   address: string;
@@ -42,22 +55,20 @@ interface Visits {
     totalPages: number;
     totalItems: number;
     itemsPerPage: number;
-  }
+  };
 }
 
 export default function MediaPage() {
-
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(1);
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDeleteMediaOpen, setIsDeleteMediaOpen] = useState(false)
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteMediaOpen, setIsDeleteMediaOpen] = useState(false);
 
-  const openModal = () => setIsModalOpen(true)
+  const openModal = () => setIsModalOpen(true);
   // const closeModal = () => setIsModalOpen(false)
 
   const [visits, setVisits] = useState<Visits>({
@@ -66,21 +77,18 @@ export default function MediaPage() {
       currentPage: 0,
       totalPages: 0,
       totalItems: 0,
-      itemsPerPage: 0
-    }
+      itemsPerPage: 0,
+    },
   });
 
   const session = useSession();
 
-
-  const TOKEN = session.data?.accessToken
+  const TOKEN = session.data?.accessToken;
 
   const headers = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${TOKEN}`,
   };
-
-
 
   const getAllVisits = async () => {
     try {
@@ -93,12 +101,11 @@ export default function MediaPage() {
       );
 
       if (!response.ok) {
-        console.log("Error: ", response.status)
+        console.log("Error: ", response.status);
       }
 
       const data = await response.json();
       setVisits(data);
-
     } catch (error) {
       console.error("API Error:", error);
       throw error;
@@ -109,8 +116,6 @@ export default function MediaPage() {
     getAllVisits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -131,24 +136,20 @@ export default function MediaPage() {
     );
 
     if (!response.ok) {
-      console.log("Error: ", response.status)
+      console.log("Error: ", response.status);
     } else {
       getAllVisits();
       toast.success("Visit deleted successfully");
     }
-    setIsDeleteMediaOpen(false)
-  }
-
+    setIsDeleteMediaOpen(false);
+  };
 
   return (
     <div className="space-y-4 px-20 mt-16">
       <div className="">
         {visits?.data?.length === 0 ? (
-          <div className="col-span-full text-center py-10">
-            No media found
-          </div>
+          <div className="col-span-full text-center py-10">No media found</div>
         ) : (
-
           <div className="">
             <div className="flex justify-end mb-12">
               <Button
@@ -157,14 +158,20 @@ export default function MediaPage() {
               >
                 + Add Media
               </Button>
-              <AddMediaModal medias={visits?.data} open={isModalOpen} onOpenChange={setIsModalOpen} />
+              <AddMediaModal
+                medias={visits?.data}
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+              />
             </div>
 
             <div className="shadow-[0px_10px_60px_0px_#0000001A] py-4 rounded-lg overflow-x-auto">
               <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px] text-center pl-10">ID</TableHead>
+                    <TableHead className="w-[50px] text-center pl-10">
+                      ID
+                    </TableHead>
                     <TableHead className="text-center">Date</TableHead>
                     <TableHead className="text-center">Visit Time</TableHead>
                     <TableHead className="text-center">Client</TableHead>
@@ -182,17 +189,23 @@ export default function MediaPage() {
                         {i + 1}
                       </TableCell>
                       <TableCell>
-                        {new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {new Date(item.date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
                       </TableCell>
                       <TableCell>
-                        {new Date(item.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        {new Date(item.date).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </TableCell>
-                      <TableCell>
-                        {item.client?.fullname}
-                      </TableCell>
+                      <TableCell>{item.client?.fullname}</TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-2">
-                          {item?.staff ?
+                          {item?.staff ? (
                             <div>
                               <div className="font-medium">
                                 {item?.staff?.fullname}
@@ -201,10 +214,9 @@ export default function MediaPage() {
                                 {item?.staff?.email}
                               </div>
                             </div>
-                            :
+                          ) : (
                             "Not Assigned"
-                          }
-
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -213,8 +225,8 @@ export default function MediaPage() {
                             item.status === "completed"
                               ? "default"
                               : item.status === "cancelled"
-                                ? "destructive"
-                                : "outline"
+                              ? "destructive"
+                              : "outline"
                           }
                           className={
                             item?.issues?.length === 0
@@ -222,12 +234,18 @@ export default function MediaPage() {
                               : "bg-[#E9BFBF] text-[#B93232]"
                           }
                         >
-                          {item?.issues?.length === 0 ? "No issue" : "Issue found"}
+                          {item?.issues?.length === 0
+                            ? "No issue"
+                            : "Issue found"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="capitalize">{item?.type || "N/A"}</TableCell>
+                      <TableCell className="capitalize">
+                        {item?.type || "N/A"}
+                      </TableCell>
                       <TableCell className="max-w-[200px] truncate">
-                        {item?.issues?.length === 0 ? "No media" : `${item?.issues?.[0]?.media?.[0]?.type}, ${item?.issues?.[0]?.media?.[1]?.type}`}
+                        {item?.issues?.length === 0
+                          ? "No media"
+                          : `${item?.issues?.[0]?.media?.[0]?.type}, ${item?.issues?.[0]?.media?.[1]?.type}`}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-center gap-2">
@@ -246,7 +264,10 @@ export default function MediaPage() {
                             <Trash className="h-4 w-4" />
                           </Button>
                           {/* Delete Package Dialog */}
-                          <Dialog open={isDeleteMediaOpen} onOpenChange={setIsDeleteMediaOpen}>
+                          <Dialog
+                            open={isDeleteMediaOpen}
+                            onOpenChange={setIsDeleteMediaOpen}
+                          >
                             <DialogContent className="sm:max-w-md">
                               <DialogHeader>
                                 <DialogTitle className="flex items-center">
@@ -289,15 +310,13 @@ export default function MediaPage() {
           </div>
         )}
       </div>
-      {
-        selectedMedia && (
-          <MediaViewerDialog
-            media={selectedMedia}
-            open={isViewerOpen}
-            onOpenChange={setIsViewerOpen}
-          />
-        )
-      }
+      {selectedMedia && (
+        <MediaViewerDialog
+          media={selectedMedia}
+          open={isViewerOpen}
+          onOpenChange={setIsViewerOpen}
+        />
+      )}
     </div>
   );
 }

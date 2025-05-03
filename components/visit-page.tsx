@@ -177,7 +177,7 @@ export function VisitPage() {
 
   // Clear specific error when input changes
   const clearFormError = (field: keyof FormErrors) => {
-    setFormErrors(prev => ({ ...prev, [field]: "" }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   // Fetch visits and staff from API
@@ -215,17 +215,19 @@ export function VisitPage() {
         const { data: staffData } = await staffResponse.json();
 
         // Transform visits data
-        const transformedVisits = visitsData.data.map((visit: VisitApiResponse) => ({
-          id: visit._id,
-          clientName: visit.client?.fullname || "N/A",
-          clientEmail: visit.client?.email || "",
-          staffName: visit.staff?.fullname || "Staff not assigned",
-          date: visit.date,
-          type: visit.type || "N/A",
-          status: visit.status || "pending",
-          address: visit.address || "",
-          notes: visit.notes || "",
-        }));
+        const transformedVisits = visitsData.data.map(
+          (visit: VisitApiResponse) => ({
+            id: visit._id,
+            clientName: visit.client?.fullname || "N/A",
+            clientEmail: visit.client?.email || "",
+            staffName: visit.staff?.fullname || "Staff not assigned",
+            date: visit.date,
+            type: visit.type || "N/A",
+            status: visit.status || "pending",
+            address: visit.address || "",
+            notes: visit.notes || "",
+          })
+        );
 
         setVisits(transformedVisits);
         setStaffList(staffData);
@@ -245,7 +247,9 @@ export function VisitPage() {
       const visitDate = new Date(currentVisit.date);
       setEditFormData({
         clientEmail: currentVisit.clientEmail || "",
-        staff: staffList.find(s => s.fullname === currentVisit.staffName)?._id || "",
+        staff:
+          staffList.find((s) => s.fullname === currentVisit.staffName)?._id ||
+          "",
         address: currentVisit.address || "",
         date: visitDate.toISOString().split("T")[0],
         time: visitDate.toTimeString().slice(0, 5),
@@ -253,7 +257,9 @@ export function VisitPage() {
         notes: currentVisit.notes || "",
       });
       setAssignStaffForm({
-        staffId: staffList.find(s => s.fullname === currentVisit.staffName)?._id || "",
+        staffId:
+          staffList.find((s) => s.fullname === currentVisit.staffName)?._id ||
+          "",
         notes: currentVisit.notes || "",
       });
     }
@@ -314,20 +320,25 @@ export function VisitPage() {
       }
 
       const newVisit = await response.json();
-      const staffName = staffList.find(s => s._id === addFormData.staff)?.fullname || "Staff not assigned";
+      const staffName =
+        staffList.find((s) => s._id === addFormData.staff)?.fullname ||
+        "Staff not assigned";
 
       // Update visits state with new visit including staff name
-      setVisits(prev => [{
-        id: newVisit.data._id,
-        clientName: newVisit.data.client?.fullname || addFormData.clientEmail,
-        clientEmail: addFormData.clientEmail,
-        staffName,
-        date: newVisit.data.date,
-        type: newVisit.data.type || addFormData.type,
-        status: newVisit.data.status || "pending",
-        address: addFormData.address,
-        notes: newVisit.data.notes || "",
-      }, ...prev]);
+      setVisits((prev) => [
+        {
+          id: newVisit.data._id,
+          clientName: newVisit.data.client?.fullname || addFormData.clientEmail,
+          clientEmail: addFormData.clientEmail,
+          staffName,
+          date: newVisit.data.date,
+          type: newVisit.data.type || addFormData.type,
+          status: newVisit.data.status || "pending",
+          address: addFormData.address,
+          notes: newVisit.data.notes || "",
+        },
+        ...prev,
+      ]);
 
       toast.success("Visit added successfully");
       setIsAddVisitOpen(false);
@@ -341,7 +352,9 @@ export function VisitPage() {
       });
     } catch (error) {
       console.error("Error adding visit:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to add visit");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add visit"
+      );
     } finally {
       setIsAdding(false);
     }
@@ -387,22 +400,26 @@ export function VisitPage() {
       if (!response.ok) throw new Error("Failed to update visit");
 
       const updatedVisit = await response.json();
-      const staffName = staffList.find(s => s._id === editFormData.staff)?.fullname || "Staff not assigned";
+      const staffName =
+        staffList.find((s) => s._id === editFormData.staff)?.fullname ||
+        "Staff not assigned";
 
       // Update the visit in state
-      setVisits(prev =>
-        prev.map(visit =>
+      setVisits((prev) =>
+        prev.map((visit) =>
           visit.id === currentVisit.id
             ? {
-              ...visit,
-              clientName: updatedVisit.data.client?.fullname || editFormData.clientEmail,
-              clientEmail: editFormData.clientEmail,
-              staffName,
-              date: updatedVisit.data.date,
-              type: updatedVisit.data.type || editFormData.type,
-              address: editFormData.address,
-              notes: editFormData.notes,
-            }
+                ...visit,
+                clientName:
+                  updatedVisit.data.client?.fullname ||
+                  editFormData.clientEmail,
+                clientEmail: editFormData.clientEmail,
+                staffName,
+                date: updatedVisit.data.date,
+                type: updatedVisit.data.type || editFormData.type,
+                address: editFormData.address,
+                notes: editFormData.notes,
+              }
             : visit
         )
       );
@@ -438,7 +455,7 @@ export function VisitPage() {
       if (!response.ok) throw new Error("Failed to delete visit");
 
       // Optimistically update the UI
-      setVisits(prev => prev.filter(visit => visit.id !== visitToDelete));
+      setVisits((prev) => prev.filter((visit) => visit.id !== visitToDelete));
       toast.success("Visit deleted successfully");
     } catch (error) {
       console.error("Error deleting visit:", error);
@@ -477,12 +494,14 @@ export function VisitPage() {
 
       if (!response.ok) throw new Error("Failed to assign staff");
 
-      const updatedVisit = await response.json();
-      const staffName = staffList.find(s => s._id === assignStaffForm.staffId)?.fullname || "Staff not assigned";
+      // const updatedVisit = await response.json();
+      const staffName =
+        staffList.find((s) => s._id === assignStaffForm.staffId)?.fullname ||
+        "Staff not assigned";
 
       // Update the visit in state
-      setVisits(prev =>
-        prev.map(visit =>
+      setVisits((prev) =>
+        prev.map((visit) =>
           visit.id === currentVisit.id
             ? { ...visit, staffName, notes: assignStaffForm.notes }
             : visit
@@ -513,7 +532,7 @@ export function VisitPage() {
   const handleOpenAssignStaffModal = (visit: Visit) => {
     setCurrentVisit(visit);
     setAssignStaffForm({
-      staffId: staffList.find(s => s.fullname === visit.staffName)?._id || "",
+      staffId: staffList.find((s) => s.fullname === visit.staffName)?._id || "",
       notes: visit.notes || "",
     });
     setIsAssignStaffOpen(true);
@@ -545,8 +564,8 @@ export function VisitPage() {
       if (!response.ok) throw new Error("Failed to update status");
 
       // Update the visit in state
-      setVisits(prev =>
-        prev.map(visit =>
+      setVisits((prev) =>
+        prev.map((visit) =>
           visit.id === currentVisit.id
             ? { ...visit, status: statusForm.status }
             : visit
@@ -749,20 +768,22 @@ export function VisitPage() {
                   <span className="sr-only">Previous page</span>
                   &lt;
                 </Button>
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-                  (pageNumber) => (
-                    <Button
-                      key={pageNumber}
-                      variant="outline"
-                      size="sm"
-                      className={`h-8 w-8 p-0 ${page === pageNumber ? "bg-yellow-100" : ""
-                        }`}
-                      onClick={() => handlePageChange(pageNumber)}
-                    >
-                      {pageNumber}
-                    </Button>
-                  )
-                )}
+                {Array.from(
+                  { length: totalPages },
+                  (_, index) => index + 1
+                ).map((pageNumber) => (
+                  <Button
+                    key={pageNumber}
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 w-8 p-0 ${
+                      page === pageNumber ? "bg-yellow-100" : ""
+                    }`}
+                    onClick={() => handlePageChange(pageNumber)}
+                  >
+                    {pageNumber}
+                  </Button>
+                ))}
                 <Button
                   variant="outline"
                   size="icon"
@@ -798,7 +819,10 @@ export function VisitPage() {
                 id="clientEmail"
                 value={addFormData.clientEmail}
                 onChange={(e) => {
-                  setAddFormData({ ...addFormData, clientEmail: e.target.value });
+                  setAddFormData({
+                    ...addFormData,
+                    clientEmail: e.target.value,
+                  });
                   clearFormError("clientEmail");
                 }}
                 placeholder="Enter client email"
@@ -821,7 +845,9 @@ export function VisitPage() {
                   clearFormError("staff");
                 }}
               >
-                <SelectTrigger className={formErrors.staff ? "border-red-500" : ""}>
+                <SelectTrigger
+                  className={formErrors.staff ? "border-red-500" : ""}
+                >
                   <SelectValue placeholder="Select Staff" />
                 </SelectTrigger>
                 <SelectContent>
@@ -833,9 +859,7 @@ export function VisitPage() {
                 </SelectContent>
               </Select>
               {formErrors.staff && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.staff}
-                </span>
+                <span className="text-red-500 text-xs">{formErrors.staff}</span>
               )}
             </div>
             <div className="grid gap-2">
@@ -873,9 +897,7 @@ export function VisitPage() {
                 className={formErrors.date ? "border-red-500" : ""}
               />
               {formErrors.date && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.date}
-                </span>
+                <span className="text-red-500 text-xs">{formErrors.date}</span>
               )}
             </div>
             <div className="grid gap-2">
@@ -893,9 +915,7 @@ export function VisitPage() {
                 className={formErrors.time ? "border-red-500" : ""}
               />
               {formErrors.time && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.time}
-                </span>
+                <span className="text-red-500 text-xs">{formErrors.time}</span>
               )}
             </div>
             <div className="grid gap-2">
@@ -909,7 +929,9 @@ export function VisitPage() {
                   clearFormError("type");
                 }}
               >
-                <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
+                <SelectTrigger
+                  className={formErrors.type ? "border-red-500" : ""}
+                >
                   <SelectValue placeholder="Select Visit Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -919,9 +941,7 @@ export function VisitPage() {
                 </SelectContent>
               </Select>
               {formErrors.type && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.type}
-                </span>
+                <span className="text-red-500 text-xs">{formErrors.type}</span>
               )}
             </div>
           </div>
@@ -969,7 +989,9 @@ export function VisitPage() {
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Email:</span>
-                <span className="text-sm">{currentVisit.clientEmail || "N/A"}</span>
+                <span className="text-sm">
+                  {currentVisit.clientEmail || "N/A"}
+                </span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Date & Time:</span>
@@ -1007,7 +1029,9 @@ export function VisitPage() {
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Notes:</span>
-                <span className="text-sm">{currentVisit.notes || "No notes available"}</span>
+                <span className="text-sm">
+                  {currentVisit.notes || "No notes available"}
+                </span>
               </div>
             </div>
           )}
@@ -1035,14 +1059,20 @@ export function VisitPage() {
           {currentVisit && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label htmlFor="edit-clientEmail" className="text-sm font-medium">
+                <label
+                  htmlFor="edit-clientEmail"
+                  className="text-sm font-medium"
+                >
                   Client Email
                 </label>
                 <Input
                   id="edit-clientEmail"
                   value={editFormData.clientEmail}
                   onChange={(e) => {
-                    setEditFormData({ ...editFormData, clientEmail: e.target.value });
+                    setEditFormData({
+                      ...editFormData,
+                      clientEmail: e.target.value,
+                    });
                     clearFormError("clientEmail");
                   }}
                   placeholder="Enter client email"
@@ -1065,7 +1095,9 @@ export function VisitPage() {
                     clearFormError("staff");
                   }}
                 >
-                  <SelectTrigger className={formErrors.staff ? "border-red-500" : ""}>
+                  <SelectTrigger
+                    className={formErrors.staff ? "border-red-500" : ""}
+                  >
                     <SelectValue placeholder="Select Staff" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1090,7 +1122,10 @@ export function VisitPage() {
                   id="edit-address"
                   value={editFormData.address}
                   onChange={(e) => {
-                    setEditFormData({ ...editFormData, address: e.target.value });
+                    setEditFormData({
+                      ...editFormData,
+                      address: e.target.value,
+                    });
                     clearFormError("address");
                   }}
                   placeholder="Enter address"
@@ -1153,7 +1188,9 @@ export function VisitPage() {
                     clearFormError("type");
                   }}
                 >
-                  <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
+                  <SelectTrigger
+                    className={formErrors.type ? "border-red-500" : ""}
+                  >
                     <SelectValue placeholder="Select Visit Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1271,7 +1308,9 @@ export function VisitPage() {
               </label>
               <Select
                 value={statusForm.status}
-                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
+                onValueChange={(value) =>
+                  setStatusForm({ ...statusForm, status: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -1289,7 +1328,9 @@ export function VisitPage() {
               <Input
                 id="notes"
                 value={statusForm.notes}
-                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
+                onChange={(e) =>
+                  setStatusForm({ ...statusForm, notes: e.target.value })
+                }
                 placeholder="Add notes"
               />
             </div>
@@ -1341,7 +1382,9 @@ export function VisitPage() {
               </label>
               <Select
                 value={assignStaffForm.staffId}
-                onValueChange={(value) => setAssignStaffForm({ ...assignStaffForm, staffId: value })}
+                onValueChange={(value) =>
+                  setAssignStaffForm({ ...assignStaffForm, staffId: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Staff" />
@@ -1362,7 +1405,12 @@ export function VisitPage() {
               <Input
                 id="assign-notes"
                 value={assignStaffForm.notes}
-                onChange={(e) => setAssignStaffForm({ ...assignStaffForm, notes: e.target.value })}
+                onChange={(e) =>
+                  setAssignStaffForm({
+                    ...assignStaffForm,
+                    notes: e.target.value,
+                  })
+                }
                 placeholder="Add assignment notes..."
               />
             </div>

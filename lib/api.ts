@@ -173,7 +173,6 @@ export async function getUsersByRoleAndStatus(role: string, status: string) {
 export async function getUsersByStatus(status: string) {
   return fetchAPI(`/admin/user-by-status/${status}`);
 }
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function addUser(userData: any) {
   return fetchAPI("/admin/add-user", {

@@ -124,10 +124,10 @@ interface VisitData {
   cancellationReason: string;
   type?: string;
   notes: string;
-//   isPaid: boolean: VisitIssue[];
-// createdAt: string;
-// updatedAt: string;
-// __v: number;
+  //   isPaid: boolean: VisitIssue[];
+  // createdAt: string;
+  // updatedAt: string;
+  // __v: number;
 }
 
 interface VisitResponse {
@@ -449,18 +449,23 @@ export default function DashboardPage() {
     fetchMetrics();
   }, [token]);
 
-  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(null);
+  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchActivity = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
           throw new Error("Failed to fetch");
@@ -511,6 +516,7 @@ export default function DashboardPage() {
     if (activeTab === "users") {
       fetchUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token, currentUserPage]);
 
   useEffect(() => {
@@ -546,19 +552,23 @@ export default function DashboardPage() {
     if (activeTab === "visits") {
       fetchVisits();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token, currentVisitPage]);
 
   // Fetch staff members for the edit form
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!res.ok) {
           throw new Error("Failed to fetch staff members");
@@ -1043,6 +1053,7 @@ export default function DashboardPage() {
     if (activeTab === "overview") {
       fetchRevenueData(getTimeRangeParam(chartTimeframe));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, chartTimeframe, token]);
 
   const handleUserPageChange = (page: number) => {
@@ -1079,19 +1090,25 @@ export default function DashboardPage() {
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "overview" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "users" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""}`}
+              className={`rounded-full px-6 py-2 ${
+                activeTab === "visits" ? "bg-[#091057] text-white" : ""
+              }`}
             >
               Visits
             </TabsTrigger>
@@ -1166,7 +1183,9 @@ export default function DashboardPage() {
                           chartTimeframe === "12months" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "12months" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
@@ -1176,7 +1195,9 @@ export default function DashboardPage() {
                           chartTimeframe === "30days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "30days" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
@@ -1186,7 +1207,9 @@ export default function DashboardPage() {
                           chartTimeframe === "7days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
+                        className={`rounded-full text-xs ${
+                          chartTimeframe === "7days" ? "bg-blue-950" : ""
+                        }`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -1214,10 +1237,10 @@ export default function DashboardPage() {
                         {isRevenueLoading
                           ? "Loading..."
                           : revenueData.length > 0
-                            ? `$${revenueData[
+                          ? `$${revenueData[
                               revenueData.length - 1
                             ]?.revenue.toLocaleString()}`
-                            : "$0"}
+                          : "$0"}
                       </div>
                     </div>
                     <div className="h-64">
@@ -1378,8 +1401,8 @@ export default function DashboardPage() {
                               day.day === 13 || day.day === 21
                                 ? "text-red-500"
                                 : day.day === 30
-                                  ? "text-yellow-500"
-                                  : ""
+                                ? "text-yellow-500"
+                                : ""
                             }
                           >
                             {day.day}
@@ -1645,7 +1668,9 @@ export default function DashboardPage() {
                       key={page}
                       variant="outline"
                       size="sm"
-                      className={`h-8 w-8 p-0 ${currentUserPage === page ? "bg-yellow-100" : ""}`}
+                      className={`h-8 w-8 p-0 ${
+                        currentUserPage === page ? "bg-yellow-100" : ""
+                      }`}
                       onClick={() => handleUserPageChange(page)}
                     >
                       {page}
@@ -1778,7 +1803,7 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit, index) => (
+                    filteredVisits.map((visit) => (
                       <TableRow key={visit._id}>
                         <TableCell>{formatDate(visit.date)}</TableCell>
                         <TableCell>{extractTime(visit.date)}</TableCell>
@@ -1875,7 +1900,9 @@ export default function DashboardPage() {
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${currentVisitPage === page ? "bg-yellow-100" : ""}`}
+                    className={`h-8 w-8 p-0 ${
+                      currentVisitPage === page ? "bg-yellow-100" : ""
+                    }`}
                     onClick={() => handleVisitPageChange(page)}
                   >
                     {page}
@@ -2050,10 +2077,11 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="text-sm font-medium mb-1">Payment</h4>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${specificVisit.isPaid
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      specificVisit.isPaid
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
-                      }`}
+                    }`}
                   >
                     {specificVisit.isPaid ? "Paid" : "Unpaid"}
                   </span>
@@ -2080,10 +2108,11 @@ export default function DashboardPage() {
                         <div>
                           <h5 className="text-xs font-medium">Type</h5>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs ${issue.type === "warning"
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              issue.type === "warning"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-red-100 text-red-800"
-                              }`}
+                            }`}
                           >
                             {issue.type}
                           </span>
@@ -2168,7 +2197,6 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
 
       {/* Edit Visit Dialog */}
       <Dialog
@@ -2258,7 +2286,9 @@ export default function DashboardPage() {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={statusForm.status}
-                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
+                onValueChange={(value) =>
+                  setStatusForm({ ...statusForm, status: value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -2278,7 +2308,9 @@ export default function DashboardPage() {
               <Textarea
                 id="notes"
                 value={statusForm.notes}
-                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
+                onChange={(e) =>
+                  setStatusForm({ ...statusForm, notes: e.target.value })
+                }
                 placeholder="Add notes"
                 rows={4}
               />
@@ -2296,7 +2328,7 @@ export default function DashboardPage() {
               disabled={isSubmitting}
               className="bg-[#091057] hover:bg-[#091057]/80"
             >
-              {isSubmitting ? 'Updating...' : 'Update Status'}
+              {isSubmitting ? "Updating..." : "Update Status"}
             </Button>
           </DialogFooter>
         </DialogContent>
