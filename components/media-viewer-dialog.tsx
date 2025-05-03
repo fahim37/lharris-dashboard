@@ -19,6 +19,8 @@ import {
 import { Badge } from "./ui/badge";
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 interface MediaViewerDialogProps {
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -27,14 +29,21 @@ interface MediaViewerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export async function MediaViewerDialog({
+export function MediaViewerDialog({
   media,
   open,
   onOpenChange,
 }: MediaViewerDialogProps) {
   const [noteOfVisit, setNoteOfVisit] = useState<string>("");
 
-  console.log(media);
+  const session = useSession();
+
+  const TOKEN = session.data?.accessToken;
+
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${TOKEN}`,
+  };
 
   // Approve visit
   const handleApproveVisit = async () => {
@@ -42,13 +51,12 @@ export async function MediaViewerDialog({
       `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-        },
+        headers,
         body: JSON.stringify({ status: "completed", notes: noteOfVisit }),
       }
     );
+    toast.success("Visit approved successfully");
+    onOpenChange(false);
   };
 
   // Reject visit
@@ -57,16 +65,15 @@ export async function MediaViewerDialog({
       `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${media._id}`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZmEzNzdjNjA0NDRiZjIzZjQ5NjdlMSIsImlhdCI6MTc0NTU3MTk0MiwiZXhwIjoxNzQ2MTc2NzQyfQ.FtZBtHxKQ-anmoMHcZ-Fb67uNzLzwfJHYytPRL6Nch8`,
-        },
+        headers,
         body: JSON.stringify({
           status: "cancelled",
           cancellationReason: noteOfVisit,
         }),
       }
     );
+    toast.success("Visit rejected successfully");
+    onOpenChange(false);
   };
 
   return (
@@ -215,7 +222,10 @@ export async function MediaViewerDialog({
           >
             Approve
           </Button>
-          <Button className="bg-[#BFBFBF] w-28" onClick={handleRejectVisit}>
+          <Button
+            className="bg-[#BFBFBF] w-28 text-red-500"
+            onClick={handleRejectVisit}
+          >
             Reject
           </Button>
         </DialogFooter>
