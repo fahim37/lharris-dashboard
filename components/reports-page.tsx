@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Trash2,  } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   LineChart,
@@ -122,10 +122,14 @@ export function ReportsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState("");
   const chartRef = useRef<HTMLDivElement>(null);
-  const { data: session } = useSession();
-  const token = session?.accessToken || "";
+  const { data: session, status } = useSession();
 
   const fetchRevenueData = async (range: string) => {
+    if (status !== "authenticated" || !session?.accessToken) {
+      toast.error("Please sign in to view revenue data");
+      return;
+    }
+
     setIsRevenueLoading(true);
     try {
       const response = await fetch(
@@ -133,7 +137,7 @@ export function ReportsPage() {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${session.accessToken}`,
             "Content-Type": "application/json",
           },
         }
@@ -145,13 +149,18 @@ export function ReportsPage() {
       setRevenueData(data.data);
     } catch (err) {
       console.error("Error fetching revenue data:", err);
-      toast.error("Failed to load revenue data");
+      // toast.error("Failed to load revenue data");
     } finally {
       setIsRevenueLoading(false);
     }
   };
 
   const fetchVisits = async (page: number = 1, limit: number = 2) => {
+    if (status !== "authenticated" || !session?.accessToken) {
+      toast.error("Please sign in to view visits data");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -159,7 +168,7 @@ export function ReportsPage() {
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${session.accessToken}`,
             "Content-Type": "application/json",
           },
         }
@@ -191,12 +200,16 @@ export function ReportsPage() {
   };
 
   useEffect(() => {
-    fetchRevenueData(getTimeRangeParam(chartTimeframe));
-  }, [chartTimeframe, token]);
+    if (status === "authenticated" && session?.accessToken) {
+      fetchRevenueData(getTimeRangeParam(chartTimeframe));
+    }
+  }, [chartTimeframe, status, session]);
 
   useEffect(() => {
-    fetchVisits(currentPage);
-  }, [currentPage, token]);
+    if (status === "authenticated" && session?.accessToken) {
+      fetchVisits(currentPage);
+    }
+  }, [currentPage, status, session]);
 
   const exportToPDF = async () => {
     if (chartRef.current) {
@@ -262,13 +275,18 @@ export function ReportsPage() {
   };
 
   const confirmDeleteVisit = async () => {
+    if (status !== "authenticated" || !session?.accessToken) {
+      toast.error("Please sign in to delete visits");
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${session.accessToken}`,
             "Content-Type": "application/json",
           },
         }
@@ -314,33 +332,38 @@ export function ReportsPage() {
     }
   };
 
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (status === "unauthenticated") {
+    return <div>Please sign in to view reports</div>;
+  }
+
   return (
-    <div className="flex flex-col ">
+    <div className="flex flex-col">
       <PageHeader title="Admin Name" />
-      <div className="p-4 ">
+      <div className="p-4">
         <div className="bg-white rounded-md shadow-sm p-4 mb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex space-x-2">
               <Button
                 variant={chartTimeframe === "12months" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""
-                  }`}
+                className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
                 onClick={() => setChartTimeframe("12months")}
               >
                 12 Months
               </Button>
               <Button
                 variant={chartTimeframe === "30days" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""
-                  }`}
+                className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
                 onClick={() => setChartTimeframe("30days")}
               >
                 30 Days
               </Button>
               <Button
                 variant={chartTimeframe === "7days" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""
-                  }`}
+                className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
                 onClick={() => setChartTimeframe("7days")}
               >
                 7 Days
@@ -365,13 +388,11 @@ export function ReportsPage() {
                     {isRevenueLoading
                       ? "Loading..."
                       : revenueData.length > 0
-                        ? `$${revenueData[
-                          revenueData.length - 1
-                        ].revenue.toLocaleString()}`
+                        ? `$${revenueData[revenueData.length - 1].revenue.toLocaleString()}`
                         : "$0"}
                   </div>
-                </div>
-                <div className="h-50">
+                  =                </div>
+                <div className="h-[300px]">
                   {isRevenueLoading ? (
                     <div className="h-full flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
@@ -394,15 +415,10 @@ export function ReportsPage() {
                         <YAxis
                           axisLine={false}
                           tickLine={false}
-                          tickFormatter={(value) =>
-                            `$${value.toLocaleString()}`
-                          }
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
                         />
                         <Tooltip
-                          formatter={(value) => [
-                            `$${Number(value).toLocaleString()}`,
-                            "Revenue",
-                          ]}
+                          formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
                           labelFormatter={(label) => {
                             const date = new Date(label);
                             return `${date.toLocaleString("default", {
@@ -465,15 +481,13 @@ export function ReportsPage() {
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-orange-400 rounded-full mr-2"></div>
                     <div className="text-sm">
-                      Video Surveillance{" "}
-                      <span className="font-semibold">15%</span>
+                      Video Surveillance <span className="font-semibold">15%</span>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
                     <div className="text-sm">
-                      Environmental Sensors{" "}
-                      <span className="font-semibold">20%</span>
+                      Environmental Sensors <span className="font-semibold">20%</span>
                     </div>
                   </div>
                 </div>
@@ -573,9 +587,7 @@ export function ReportsPage() {
                       <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${getIssueClass(
-                            visit.issues
-                          )}`}
+                          className={`px-2 py-1 rounded-full text-xs ${getIssueClass(visit.issues)}`}
                         >
                           {visit.issues.length === 0 ? "No Issue" : "Issue Found"}
                         </span>
@@ -583,12 +595,6 @@ export function ReportsPage() {
                       <TableCell>{visit.type || "N/A"}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {/* <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button> */}
-                          {/* <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button> */}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -628,7 +634,8 @@ export function ReportsPage() {
                   disabled={currentPage === 1}
                   onClick={() => handlePageChange(currentPage - 1)}
                 >
-                  <span className="sr-only">Previous page</span>&lt;
+                  <span className="sr-only">Previous page</span>
+                  &lt;
                 </Button>
                 {Array.from(
                   { length: visitsData.meta.totalPages },
@@ -638,8 +645,7 @@ export function ReportsPage() {
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""
-                      }`}
+                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""}`}
                     onClick={() => handlePageChange(page)}
                   >
                     {page}
@@ -651,7 +657,8 @@ export function ReportsPage() {
                   disabled={currentPage === visitsData.meta.totalPages}
                   onClick={() => handlePageChange(currentPage + 1)}
                 >
-                  <span className="sr-only">Next page</span>&gt;
+                  <span className="sr-only">Next page</span>
+                  &gt;
                 </Button>
               </div>
             </div>
