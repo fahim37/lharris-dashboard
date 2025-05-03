@@ -477,7 +477,7 @@ export function VisitPage() {
 
       if (!response.ok) throw new Error("Failed to assign staff");
 
-      const updatedVisit = await response.json();
+      // const updatedVisit = await response.json();
       const staffName = staffList.find(s => s._id === assignStaffForm.staffId)?.fullname || "Staff not assigned";
 
       // Update the visit in state
