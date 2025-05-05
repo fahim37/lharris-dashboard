@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Check, Plus, Pencil, Trash, Eye, Download } from "lucide-react"
-import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans, deletePlan, updatePlan } from "@/lib/api"
+import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans, deletePlan, updatePlan, setAuthToken } from "@/lib/api"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -86,12 +86,26 @@ export function PricingPage() {
   const [selectedPayment, setSelectedPayment] = useState<any>(null)
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
+
+  const { data: session } = useSession();
+  const token = session?.accessToken as string | undefined;
+
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token); // Set the token when it becomes available
+    }
+  }, [token]);
+
+
+
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleViewPaymentDetails = (payment: any) => {
     setSelectedPayment(payment)
     setIsModalOpen(true)
   }
-/* eslint-disable @typescript-eslint/no-explicit-any */
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleDownloadPaymentDetails = (payment: any) => {
     try {
       const doc = generatePaymentPDF(payment)
@@ -158,8 +172,10 @@ export function PricingPage() {
         toast.error("Failed to load billing metrics")
       }
     }
-    fetchMetrics()
-  }, [])
+    if (token) {
+      fetchMetrics();
+    }
+  }, [token])
 
   const handleAddPackage = async (data: FormData) => {
     try {
@@ -229,24 +245,17 @@ export function PricingPage() {
     setIsEditPackageOpen(true);
   };
 
-  const session = useSession()
-
 
   const getPayments = async () => {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/payments/all?page=${page}&limit=${limit}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data?.accessToken}`,
-        }
       }
     )
 
     const data = await res.json()
     return setPayments(data);
-
   }
 
 
