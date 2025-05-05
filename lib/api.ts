@@ -2,7 +2,7 @@
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
 // const session = useSession();
 // const TOKEN = session?.data?.accessToken
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTE5N2M4YWU2NzVkOGUyZmMyYjg0YyIsImlhdCI6MTc0NjE1NjUyMSwiZXhwIjoxNzQ2NzYxMzIxfQ.FpDyOuqdii2j6wSvzsk13FWGBIcq5GWwd8q89g8fM-k";
+const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4ZjMwMzY0NzhjZDFjMTZmZjllNiIsImlhdCI6MTc0NjI1NDM5OSwiZXhwIjoxNzQ2ODU5MTk5fQ.jRC0zgDTFRj8N6YUdOnJEO9T7UvXaho0vmAE8Q20gl8";
 
 // Helper function for API calls
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
@@ -35,7 +35,7 @@ export async function getActivePlans() {
 }
 
 export async function getMonthlyRevenue() {
-  return fetchAPI("/admin/metrics/monthly-revenue");
+  return fetchAPI("/admin/metrics");
 }
 
 export async function getActiveDiscounts() {
@@ -173,7 +173,6 @@ export async function getUsersByRoleAndStatus(role: string, status: string) {
 export async function getUsersByStatus(status: string) {
   return fetchAPI(`/admin/user-by-status/${status}`);
 }
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function addUser(userData: any) {
   return fetchAPI("/admin/add-user", {
