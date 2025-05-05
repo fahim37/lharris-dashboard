@@ -1,20 +1,20 @@
-"use client"
-import { useState } from "react"
-import { useSession, signOut } from "next-auth/react"
+"use client";
+import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 interface PageHeaderProps {
-  title?: string
-  subtitle?: string
+  title?: string;
+  subtitle?: string;
 }
 
-export function PageHeader({  }: PageHeaderProps) {
-  const { data: session } = useSession()
-  const user = session?.user
-  const [isModalOpen, setIsModalOpen] = useState(false)
+export function PageHeader({}: PageHeaderProps) {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" })
-  }
+    await signOut({ callbackUrl: "/login" });
+  };
 
   return (
     <div className="border-b p-4">
@@ -58,8 +58,12 @@ export function PageHeader({  }: PageHeaderProps) {
               </div>
               <div>
                 <div className="font-medium">{user?.name}</div>
-                <div className="text-sm text-muted-foreground">{user?.email}</div>
-                <div className="text-sm text-muted-foreground">{user?.role}</div>
+                <div className="text-sm text-muted-foreground">
+                  {user?.email}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {user?.role}
+                </div>
               </div>
             </div>
             <button
@@ -72,5 +76,5 @@ export function PageHeader({  }: PageHeaderProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
