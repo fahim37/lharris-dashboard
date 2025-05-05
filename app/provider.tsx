@@ -1,8 +1,27 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import { ReactNode } from "react";
+import { setAuthToken } from "@/lib/api";
+import { SessionProvider, useSession } from "next-auth/react";
+import { ReactNode, useEffect } from "react";
+
+function AuthTokenSetter() {
+  const { data: session } = useSession();
+  const token = session?.accessToken as string | undefined;
+
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token);
+    }
+  }, [token]);
+
+  return null; // This component doesn't render anything
+}
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider>
+      <AuthTokenSetter />
+      {children}
+    </SessionProvider>
+  );
 }

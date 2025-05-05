@@ -1,16 +1,23 @@
 
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
-// const session = useSession();
-// const TOKEN = session?.data?.accessToken
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4ZjMwMzY0NzhjZDFjMTZmZjllNiIsImlhdCI6MTc0NjI1NDM5OSwiZXhwIjoxNzQ2ODU5MTk5fQ.jRC0zgDTFRj8N6YUdOnJEO9T7UvXaho0vmAE8Q20gl8";
+// const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MDg4ZjMwMzY0NzhjZDFjMTZmZjllNiIsImlhdCI6MTc0NjI1NDM5OSwiZXhwIjoxNzQ2ODU5MTk5fQ.jRC0zgDTFRj8N6YUdOnJEO9T7UvXaho0vmAE8Q20gl8";
+
+let _TOKEN: string | undefined; // Use an underscore to indicate it's internal
+
+export const setAuthToken = (token: string | undefined) => {
+  _TOKEN = token;
+};
+
+
 
 // Helper function for API calls
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${TOKEN}`,
+    Authorization: `Bearer ${_TOKEN}`,
     ...options.headers,
   };
+
 
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
