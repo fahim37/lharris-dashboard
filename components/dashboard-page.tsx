@@ -1585,7 +1585,7 @@ export default function DashboardPage() {
                   <SelectItem value="thismonth">This Month</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-[#091057] hover:bg-[#091057]/80">Add Visit</Button>
+              {/* <Button className="bg-[#091057] hover:bg-[#091057]/80">Add Visit</Button> */}
             </div>
           </div>
 
