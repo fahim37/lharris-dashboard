@@ -1,46 +1,16 @@
-"use client";
+"use client"
 
-import type React from "react";
+import React from "react"
 
-import { useState, useEffect, useRef, ReactNode } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Search,
-  Users,
-  Calendar,
-  Clock,
-  Edit,
-  Eye,
-  Trash2,
-  FileText,
-} from "lucide-react";
-import {
-  Line,
-  LineChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useState, useEffect, useRef } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Search, Users, Calendar, Clock, Edit, Eye, Trash2, FileText } from "lucide-react"
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import {
   Dialog,
   DialogContent,
@@ -48,254 +18,235 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import Image from "next/image";
-import { useSession } from "next-auth/react";
-import { PageHeader } from "./page-header";
-import { setAuthToken } from "@/lib/api";
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { Textarea } from "@/components/ui/textarea"
+import { jsPDF } from "jspdf"
+import html2canvas from "html2canvas"
+import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { PageHeader } from "./page-header"
 
 // Define types for our metrics data
 interface MetricsData {
-  activeUsers: number;
-  totalVisits: number;
-  pendingVisits: number;
-  totalSecurityStaff: number;
-  totalAdmin: number;
-  confirmVisits: number;
-  inProgress: number;
+  activeUsers: number
+  totalVisits: number
+  pendingVisits: number
+  totalSecurityStaff: number
+  totalAdmin: number
+  confirmVisits: number
+  inProgress: number
 }
 
 // Define types for our calendar data
-interface CalendarDay {
-  day: number;
-  status?: "success" | "cancelled" | "pending" | "confirmed" | "normal";
-  hasVisit?: boolean;
-  visitTime?: string;
-}
-
-// Define types for our notifications data
-interface Notification {
-  type: string;
-  message: string;
-  time: string;
-}
+// interface CalendarDay {
+//   day: number
+//   status?: "success" | "cancelled" | "pending" | "confirmed" | "normal"
+//   hasVisit?: boolean
+//   visitTime?: string
+// }
 
 // Define types for our visits API response
 interface VisitClient {
-  _id: string;
-  fullname: string;
-  email: string;
+  _id: string
+  fullname: string
+  email: string
 }
 
 interface VisitStaff {
-  _id: string;
-  fullname: string;
-  email: string;
+  _id: string
+  fullname: string
+  email: string
 }
 
 interface VisitIssueMedia {
-  type: "photo" | "video";
-  url: string;
-  _id: string;
+  type: "photo" | "video"
+  url: string
+  _id: string
 }
 
 interface VisitIssue {
-  issue: ReactNode;
-  place: string;
-  issue在一起: string;
-  type: string;
-  media: VisitIssueMedia[];
-  notes: string;
-  _id: string;
+  issue: string
+  place: string
+  type: string
+  media: VisitIssueMedia[]
+  notes: string
+  _id: string
 }
 
 interface VisitData {
-  _id: string;
-  client: VisitClient;
-  staff: VisitStaff;
-  address: string;
-  date: string;
-  status: string;
-  cancellationReason: string;
-  type?: string;
-  notes: string;
-  //   isPaid: boolean: VisitIssue[];
-  // createdAt: string;
-  // updatedAt: string;
-  // __v: number;
+  _id: string
+  client: VisitClient
+  staff: VisitStaff
+  address: string
+  date: string
+  status: string
+  cancellationReason: string
+  type?: string
+  notes: string
 }
 
 interface VisitResponse {
-  success: boolean;
-  data: VisitData[];
+  success: boolean
+  data: VisitData[]
   meta: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-  };
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+  }
 }
 
 interface SpecificVisitResponse {
-  _id: string;
+  _id: string
   client: {
-    _id: string;
-    fullname: string;
-    password: string;
-    email: string;
-    role: string;
-    isVerified: boolean;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-    __v: number;
-    lastActive: string;
-  };
+    _id: string
+    fullname: string
+    password: string
+    email: string
+    role: string
+    isVerified: boolean
+    status: string
+    createdAt: string
+    updatedAt: string
+    __v: number
+    lastActive: string
+  }
   staff?: {
-    _id: string;
-    fullname: string;
-    email: string;
-  };
-  address?: string;
-  date?: string;
-  status?: string;
-  cancellationReason?: string;
-  type?: string;
-  notes?: string;
-  isPaid?: boolean;
-  issues?: VisitIssue[];
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;
+    _id: string
+    fullname: string
+    email: string
+  }
+  address?: string
+  date?: string
+  status?: string
+  cancellationReason?: string
+  type?: string
+  notes?: string
+  isPaid?: boolean
+  issues?: VisitIssue[]
+  createdAt?: string
+  updatedAt?: string
+  __v?: number
 }
 
 export interface UserInfo {
-  _id: string;
-  fullname: string;
-  email: string;
+  _id: string
+  fullname: string
+  email: string
 }
 
 export interface PlanInfo {
-  _id: string;
-  name: string;
-  price: number;
+  _id: string
+  name: string
+  price: number
 }
 
 export interface RecentActivityItem {
-  _id: string;
-  user: UserInfo;
-  visit: string | null;
-  plan?: PlanInfo;
-  amount: number;
-  status: "completed" | "pending" | "failed";
-  transactionId: string;
-  paymentMethod: "stripe" | "paypal" | "cash";
-  createdAt: string;
-  paymentDate: string;
-  __v: number;
+  _id: string
+  user: UserInfo
+  visit: string | null
+  plan?: PlanInfo
+  amount: number
+  status: "completed" | "pending" | "failed"
+  transactionId: string
+  paymentMethod: "stripe" | "paypal" | "cash"
+  createdAt: string
+  paymentDate: string
+  __v: number
 }
 
 export interface RecentActivityResponse {
-  data: RecentActivityItem[];
+  data: RecentActivityItem[]
 }
 
 interface RevenueGrowthData {
-  date: string;
-  revenue: number;
+  date: string
+  revenue: number
 }
 
 interface RevenueGrowthResponse {
-  status: boolean;
-  message: string;
-  data: RevenueGrowthData[];
+  status: boolean
+  message: string
+  data: RevenueGrowthData[]
 }
 
 interface UserData {
-  _id: string;
-  fullname: string;
-  email: string;
-  role: "admin" | "client" | "staff" | "user" | "moderator";
-  status: "active" | "inactive";
-  lastActive: string;
+  _id: string
+  fullname: string
+  email: string
+  role: "admin" | "client" | "staff" | "user" | "moderator"
+  status: "active" | "inactive"
+  lastActive: string
 }
 
 interface UserResponse {
-  status: boolean;
-  data: UserData[];
+  status: boolean
+  data: UserData[]
   pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-  };
+    currentPage: number
+    totalPages: number
+    totalItems: number
+  }
 }
 
 interface StaffMember {
-  _id: string;
-  fullname: string;
-  email: string;
-  role: string;
+  _id: string
+  fullname: string
+  email: string
+  role: string
 }
 
 interface EditVisitData {
-  staff: string;
-  type: string;
-  notes: string;
+  staff: string
+  type: string
+  notes: string
 }
 
 interface AllMetrics {
-  activeUsersCount: number;
-  totalVisits: number;
-  pendingVisits: number;
-  totalSecurityStaff: number;
-  totalAdmin: number;
-  confirmedVisitCount: number;
-  completedVisitCount: number;
+  activeUsersCount: number
+  totalVisits: number
+  pendingVisits: number
+  totalSecurityStaff: number
+  totalAdmin: number
+  confirmedVisitCount: number
+  completedVisitCount: number
 }
 
 interface User {
-  _id: string;
-  fullname: string;
-  email: string;
-  role: string;
+  _id: string
+  fullname: string
+  email: string
+  role: string
 }
 
 // Interface for each notification object in the data array
 interface Notification {
-  _id: string;
-  userId: User;
-  type: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string; // ISO 8601 date string
-  __v: number;
-  displayUser: User;
+  _id: string
+  userId: User
+  type: string
+  message: string
+  isRead: boolean
+  createdAt: string
+  __v: number
+  displayUser: User
+  time?: string
 }
 
 // Interface for the pagination object
 // interface Pagination {
-//   page: number;
-//   limit: number;
-//   total: number;
-//   pages: number;
-// }
-
-// Interface for the root JSON object
-// interface Notificationresponse {
-//   success: boolean;
-//   data: Notification[];
-//   pagination: Pagination;
+//   page: number
+//   limit: number
+//   total: number
+//   pages: number
 // }
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [visitSearchTerm, setVisitSearchTerm] = useState("");
-  const [chartTimeframe, setChartTimeframe] = useState("12months");
+  const [activeTab, setActiveTab] = useState("overview")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [visitSearchTerm, setVisitSearchTerm] = useState("")
+  const [chartTimeframe, setChartTimeframe] = useState("12months")
   const [metrics, setMetrics] = useState<MetricsData>({
     activeUsers: 0,
     totalVisits: 0,
@@ -304,132 +255,77 @@ export default function DashboardPage() {
     totalAdmin: 0,
     confirmVisits: 0,
     inProgress: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState("")
   const [editUserData, setEditUserData] = useState({
     fullname: "",
     email: "",
     password: "",
     role: "client" as "client" | "admin" | "staff",
-  });
-  const [visitsData, setVisitsData] = useState<VisitResponse | null>(null);
-  const [specificVisit, setSpecificVisit] =
-    useState<SpecificVisitResponse | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [selectedVisitId, setSelectedVisitId] = useState("");
-  const [isDeleteVisitDialogOpen, setIsDeleteVisitDialogOpen] = useState(false);
-  const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all");
-  const [visitDateFilter, setVisitDateFilter] = useState<string>("all");
-  const [isEditVisitDialogOpen, setIsEditVisitDialogOpen] = useState(false);
+  })
+  const [visitsData, setVisitsData] = useState<VisitResponse | null>(null)
+  const [specificVisit, setSpecificVisit] = useState<SpecificVisitResponse | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [selectedVisitId, setSelectedVisitId] = useState("")
+  const [isDeleteVisitDialogOpen, setIsDeleteVisitDialogOpen] = useState(false)
+  const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all")
+  const [visitDateFilter, setVisitDateFilter] = useState<string>("all")
+  const [isEditVisitDialogOpen, setIsEditVisitDialogOpen] = useState(false)
   const [editVisitData, setEditVisitData] = useState<EditVisitData>({
     staff: "",
     type: "",
     notes: "",
-  });
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  })
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([])
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
   const [statusForm, setStatusForm] = useState({
     status: "",
     notes: "",
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   // Pagination states for User Management tab
-  const [currentUserPage, setCurrentUserPage] = useState<number>(1);
-  const [totalUserPages, setTotalUserPages] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(5);
+  const [currentUserPage, setCurrentUserPage] = useState<number>(1)
+  const [totalUserPages, setTotalUserPages] = useState<number>(1)
+  const [itemsPerPage] = useState<number>(5)
   // Pagination states for Visits tab
-  const [currentVisitPage, setCurrentVisitPage] = useState<number>(1);
-  const [totalVisitPages, setTotalVisitPages] = useState<number>(1);
-  const [visitsPerPage] = useState<number>(5);
+  const [currentVisitPage, setCurrentVisitPage] = useState<number>(1)
+  const [totalVisitPages, setTotalVisitPages] = useState<number>(1)
+  const [visitsPerPage] = useState<number>(5)
 
-  // Sample calendar data
-  const calendarDays: CalendarDay[][] = [
-    [
-      { day: 28, status: "normal" },
-      { day: 29, status: "normal" },
-      { day: 30, status: "normal" },
-      { day: 1, status: "normal" },
-      { day: 2, status: "success" },
-      { day: 3, status: "normal" },
-      { day: 4, status: "cancelled" },
-    ],
-    [
-      { day: 5, status: "normal" },
-      { day: 6, status: "success" },
-      { day: 7, status: "normal" },
-      { day: 8, status: "normal" },
-      { day: 9, status: "normal" },
-      { day: 10, status: "cancelled" },
-      { day: 11, status: "normal" },
-    ],
-    [
-      { day: 12, status: "normal" },
-      { day: 13, status: "cancelled" },
-      { day: 14, status: "normal" },
-      { day: 15, status: "normal" },
-      { day: 16, status: "success" },
-      { day: 17, status: "normal" },
-      { day: 18, status: "success" },
-    ],
-    [
-      { day: 19, status: "normal" },
-      { day: 20, status: "normal" },
-      { day: 21, status: "cancelled" },
-      { day: 22, status: "normal" },
-      { day: 23, status: "normal" },
-      { day: 24, status: "success" },
-      { day: 25, status: "normal" },
-    ],
-    [
-      { day: 26, status: "success" },
-      { day: 27, status: "normal" },
-      { day: 28, status: "confirmed", hasVisit: true, visitTime: "9:00 AM" },
-      { day: 29, status: "normal" },
-      { day: 30, status: "pending" },
-      { day: 1, status: "normal" },
-      { day: 2, status: "normal" },
-    ],
-  ];
+  const [metricsData, setMetricsData] = useState<AllMetrics | null>(null)
+  const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([])
+  const [isRevenueLoading, setIsRevenueLoading] = useState(false)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const session = useSession()
+  const token = session?.data?.accessToken
 
-  // Sample notifications data
+  // Filter states
+  const [roleFilter, setRoleFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  const [metricsData, setMetricsData] = useState<AllMetrics | null>(null);
-  const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
-  const [isRevenueLoading, setIsRevenueLoading] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  const { data: session } = useSession();
-  const token = session?.accessToken as string | undefined;
-
-  useEffect(() => {
-    if (token) {
-      setAuthToken(token); // Set the token when it becomes available
-    }
-  }, [token]);
+  // State for the overview tab visit filter
+  const [overviewVisitStatusFilter, setOverviewVisitStatusFilter] = useState<string>("all")
 
   // Fetch metrics data from API
   useEffect(() => {
     const fetchMetrics = async () => {
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
         if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+          throw new Error(`API request failed with status ${response.status}`)
         }
-        const data = await response.json();
-        setMetricsData(data?.data);
+        const data = await response.json()
+        setMetricsData(data?.data)
 
         // Update metrics with data from API
         setMetrics({
@@ -440,53 +336,47 @@ export default function DashboardPage() {
           totalAdmin: data?.data?.totalAdmins || 28,
           confirmVisits: data?.data?.confirmVisits || 128,
           inProgress: data?.data?.inProgress || 9,
-        });
-        setError(null);
+        })
+        setError(null)
       } catch (err) {
-        console.error("Error fetching metrics:", err);
-        setError("Failed to load metrics data. Using fallback data.");
+        console.error("Error fetching metrics:", err)
+        setError("Failed to load metrics data. Using fallback data.")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
-    if (token) {
-      fetchMetrics();
     }
-  }, [token]);
 
-  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(
-    null
-  );
+    fetchMetrics()
+  }, [token])
+
+  const [recentData, setRecentData] = useState<RecentActivityResponse | null>(null)
 
   useEffect(() => {
     const fetchActivity = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/recent-user-activity`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
 
         if (!res.ok) {
-          throw new Error("Failed to fetch");
+          throw new Error("Failed to fetch")
         }
 
-        const data = await res.json();
-        setRecentData(data);
+        const data = await res.json()
+        setRecentData(data)
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error:", err)
       }
-    };
+    }
 
-    fetchActivity();
-  }, [token]);
+    fetchActivity()
+  }, [token])
 
-  const [userData, setUserData] = useState<UserData[]>([]);
+  const [userData, setUserData] = useState<UserData[]>([])
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -499,30 +389,30 @@ export default function DashboardPage() {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          }
-        );
+          },
+        )
 
         if (!res.ok) {
-          throw new Error("Failed to fetch");
+          throw new Error("Failed to fetch")
         }
 
-        const response: UserResponse = await res.json();
-        setUserData(response.data);
+        const response: UserResponse = await res.json()
+        setUserData(response.data)
         if (response.pagination) {
-          setTotalUserPages(response.pagination.totalPages);
-          setCurrentUserPage(response.pagination.currentPage);
+          setTotalUserPages(response.pagination.totalPages)
+          setCurrentUserPage(response.pagination.currentPage)
         }
       } catch (err) {
-        console.error("Error:", err);
-        toast.error("Failed to fetch users");
+        console.error("Error:", err)
+        toast.error("Failed to fetch users")
       }
-    };
+    }
 
     if (activeTab === "users") {
-      fetchUsers();
+      fetchUsers()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, token, currentUserPage]);
+  }, [activeTab, token, currentUserPage])
 
   useEffect(() => {
     const fetchVisits = async () => {
@@ -535,351 +425,321 @@ export default function DashboardPage() {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          }
-        );
+          },
+        )
 
         if (!res.ok) {
-          throw new Error("Failed to fetch visits");
+          throw new Error("Failed to fetch visits")
         }
 
-        const data: VisitResponse = await res.json();
-        setVisitsData(data);
+        const data: VisitResponse = await res.json()
+        setVisitsData(data)
         if (data.meta) {
-          setTotalVisitPages(data.meta.totalPages);
-          setCurrentVisitPage(data.meta.currentPage);
+          setTotalVisitPages(data.meta.totalPages)
+          setCurrentVisitPage(data.meta.currentPage)
         }
       } catch (err) {
-        console.error("Error fetching visits:", err);
-        toast.error("Failed to fetch visits");
+        console.error("Error fetching visits:", err)
+        toast.error("Failed to fetch visits")
       }
-    };
+    }
 
     if (activeTab === "visits") {
-      fetchVisits();
+      fetchVisits()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, token, currentVisitPage]);
+  }, [activeTab, token, currentVisitPage])
 
   // Fetch staff members for the edit form
   useEffect(() => {
     const fetchStaffMembers = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch staff members");
-        }
-
-        const data = await res.json();
-        setStaffMembers(data.data || []);
-      } catch (err) {
-        console.error("Error fetching staff members:", err);
-        toast.error("Failed to load staff members");
-      }
-    };
-
-    if (isEditVisitDialogOpen) {
-      fetchStaffMembers();
-    }
-  }, [isEditVisitDialogOpen, token]);
-
-  // Filter users based on search term
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-
-  const filteredUsers = userData.filter((user) => {
-    // Filter by search term
-    const matchesSearch =
-      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user._id.includes(searchTerm);
-
-    // Filter by role
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-
-    // Filter by status
-    const matchesStatus =
-      statusFilter === "all" || user.status === statusFilter;
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  // Filter visits based on search term and filters
-  const filteredVisits =
-    visitsData?.data.filter((visit) => {
-      // Filter by search term
-      const matchesSearch =
-        visit.address.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
-        visit.client.fullname
-          .toLowerCase()
-          .includes(visitSearchTerm.toLowerCase()) ||
-        (visit.staff?.fullname &&
-          visit.staff.fullname
-            .toLowerCase()
-            .includes(visitSearchTerm.toLowerCase())) ||
-        visit._id.includes(visitSearchTerm);
-
-      // Filter by status
-      const matchesStatus =
-        visitStatusFilter === "all" || visit.status === visitStatusFilter;
-
-      // Filter by date
-      let matchesDate = true;
-      if (visitDateFilter === "today") {
-        const today = new Date().toISOString().split("T")[0];
-        matchesDate = visit.date.includes(today);
-      } else if (visitDateFilter === "thisweek") {
-        const now = new Date();
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-        const endOfWeek = new Date(now.setDate(now.getDate() + 6));
-        const visitDate = new Date(visit.date);
-        matchesDate = visitDate >= startOfWeek && visitDate <= endOfWeek;
-      } else if (visitDateFilter === "thismonth") {
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const visitDate = new Date(visit.date);
-        matchesDate =
-          visitDate.getMonth() === currentMonth &&
-          visitDate.getFullYear() === currentYear;
-      }
-
-      return matchesSearch && matchesStatus && matchesDate;
-    }) || [];
-
-  // Get status class for styling
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case "active":
-      case "Active":
-        return "bg-green-100 text-green-800";
-      case "inactive":
-      case "Inactive":
-        return "bg-red-100 text-red-800";
-      case "Scheduled":
-      case "scheduled":
-        return "bg-blue-100 text-blue-800";
-      case "In Progress":
-      case "in progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "Complete":
-      case "complete":
-      case "completed":
-        return "bg-green-100 text-green-800";
-      case "Cancelled":
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "Confirm":
-      case "confirm":
-      case "confirmed":
-        return "bg-green-100 text-green-800";
-      case "pending":
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  // Get calendar day class for styling
-  const getCalendarDayClass = (status?: string) => {
-    switch (status) {
-      case "success":
-        return "bg-green-100";
-      case "cancelled":
-        return "bg-red-100";
-      case "pending":
-        return "bg-yellow-100";
-      case "confirmed":
-        return "bg-blue-100";
-      default:
-        return "";
-    }
-  };
-
-  const handleDeleteClick = (userId: string) => {
-    setSelectedUserId(userId);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleEditClick = (user: UserData) => {
-    setSelectedUserId(user._id);
-    setEditUserData({
-      fullname: user.fullname,
-      email: user.email,
-      password: "",
-      role: user.role as "admin" | "client" | "staff",
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete user");
-      }
-
-      // Update the user list after successful deletion
-      setUserData(userData.filter((user) => user._id !== selectedUserId));
-      toast.success("User deleted successfully");
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("Failed to delete user");
-    } finally {
-      setIsDeleteDialogOpen(false);
-    }
-  };
-
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editUserData),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update user");
-      }
-
-      // Update the user list with the edited user
-      setUserData(
-        userData.map((user) =>
-          user._id === selectedUserId ? { ...user, ...editUserData } : user
-        )
-      );
-
-      toast.success("User updated successfully");
-    } catch (error) {
-      console.error("Error updating user:", error);
-      toast.error("Failed to update user");
-    } finally {
-      setIsEditDialogOpen(false);
-    }
-  };
-
-  const handleViewVisit = async (visitId: string) => {
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`,
-        {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
-      );
+        })
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch visit details");
+        if (!res.ok) {
+          throw new Error("Failed to fetch staff members")
+        }
+
+        const data = await res.json()
+        setStaffMembers(data.data || [])
+      } catch (err) {
+        console.error("Error fetching staff members:", err)
+        toast.error("Failed to load staff members")
+      }
+    }
+
+    if (isEditVisitDialogOpen) {
+      fetchStaffMembers()
+    }
+  }, [isEditVisitDialogOpen, token])
+
+  // Filter users based on search term and filters
+  const filteredUsers = userData.filter((user) => {
+    // Filter by search term
+    const matchesSearch =
+      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user._id.includes(searchTerm)
+
+    // Filter by role
+    const matchesRole = roleFilter === "all" || user.role === roleFilter
+
+    // Filter by status
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter
+
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Filter visits based on search term and filters for the Visits tab
+  const filteredVisits = React.useMemo(() => {
+    if (!visitsData?.data) return []
+
+    return visitsData.data.filter((visit) => {
+      // Filter by search term
+      const matchesSearch =
+        visit.address.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
+        visit.client.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
+        (visit.staff?.fullname && visit.staff.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase())) ||
+        visit._id.includes(visitSearchTerm)
+
+      // Filter by status (case-insensitive comparison)
+      const matchesStatus =
+        visitStatusFilter === "all" || visit.status.toLowerCase() === visitStatusFilter.toLowerCase()
+
+      // Filter by date
+      let matchesDate = true
+      if (visitDateFilter === "today") {
+        const today = new Date().toISOString().split("T")[0]
+        matchesDate = visit.date.includes(today)
+      } else if (visitDateFilter === "thisweek") {
+        const now = new Date()
+        const startOfWeek = new Date(now)
+        startOfWeek.setDate(now.getDate() - now.getDay())
+        startOfWeek.setHours(0, 0, 0, 0)
+
+        const endOfWeek = new Date(now)
+        endOfWeek.setDate(startOfWeek.getDate() + 6)
+        endOfWeek.setHours(23, 59, 59, 999)
+
+        const visitDate = new Date(visit.date)
+        matchesDate = visitDate >= startOfWeek && visitDate <= endOfWeek
+      } else if (visitDateFilter === "thismonth") {
+        const now = new Date()
+        const currentMonth = now.getMonth()
+        const currentYear = now.getFullYear()
+        const visitDate = new Date(visit.date)
+        matchesDate = visitDate.getMonth() === currentMonth && visitDate.getFullYear() === currentYear
       }
 
-      const data = await response.json();
-      setSpecificVisit(data.data || data);
-      setIsViewDialogOpen(true);
+      return matchesSearch && matchesStatus && matchesDate
+    })
+  }, [visitsData, visitSearchTerm, visitStatusFilter, visitDateFilter])
+
+  // Filter visits for the Overview tab
+  const filteredOverviewVisits = React.useMemo(() => {
+    if (!visitsData?.data) return []
+
+    return visitsData.data.filter((visit) => {
+      // Filter by status (case-insensitive comparison)
+      return (
+        overviewVisitStatusFilter === "all" || visit.status.toLowerCase() === overviewVisitStatusFilter.toLowerCase()
+      )
+    })
+  }, [visitsData, overviewVisitStatusFilter])
+
+  // Get status class for styling
+  const getStatusClass = (status: string) => {
+    if (!status) return "bg-gray-100 text-gray-800"
+
+    const normalizedStatus = status.toLowerCase()
+
+    if (normalizedStatus.includes("active")) return "bg-green-100 text-green-800"
+    if (normalizedStatus.includes("inactive")) return "bg-red-100 text-red-800"
+    if (normalizedStatus.includes("scheduled")) return "bg-blue-100 text-blue-800"
+    if (normalizedStatus.includes("progress")) return "bg-yellow-100 text-yellow-800"
+    if (normalizedStatus.includes("complete")) return "bg-green-100 text-green-800"
+    if (normalizedStatus.includes("cancelled")) return "bg-red-100 text-red-800"
+    if (normalizedStatus.includes("confirm")) return "bg-green-100 text-green-800"
+    if (normalizedStatus.includes("pending")) return "bg-yellow-100 text-yellow-800"
+
+    return "bg-gray-100 text-gray-800"
+  }
+
+  // Get calendar day class for styling
+  // const getCalendarDayClass = (status?: string) => {
+  //   switch (status) {
+  //     case "success":
+  //       return "bg-green-100"
+  //     case "cancelled":
+  //       return "bg-red-100"
+  //     case "pending":
+  //       return "bg-yellow-100"
+  //     case "confirmed":
+  //       return "bg-blue-100"
+  //     default:
+  //       return ""
+  //   }
+  // }
+
+  const handleDeleteClick = (userId: string) => {
+    setSelectedUserId(userId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleEditClick = (user: UserData) => {
+    setSelectedUserId(user._id)
+    setEditUserData({
+      fullname: user.fullname,
+      email: user.email,
+      password: "",
+      role: user.role as "admin" | "client" | "staff",
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${selectedUserId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete user")
+      }
+
+      // Update the user list after successful deletion
+      setUserData(userData.filter((user) => user._id !== selectedUserId))
+      toast.success("User deleted successfully")
     } catch (error) {
-      console.error("Error fetching visit details:", error);
-      toast.error("Failed to fetch visit details");
+      console.error("Error deleting user:", error)
+      toast.error("Failed to delete user")
+    } finally {
+      setIsDeleteDialogOpen(false)
     }
-  };
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${selectedUserId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editUserData),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update user")
+      }
+
+      // Update the user list with the edited user
+      setUserData(userData.map((user) => (user._id === selectedUserId ? { ...user, ...editUserData } : user)))
+
+      toast.success("User updated successfully")
+    } catch (error) {
+      console.error("Error updating user:", error)
+      toast.error("Failed to update user")
+    } finally {
+      setIsEditDialogOpen(false)
+    }
+  }
+
+  const handleViewVisit = async (visitId: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-specific-visit/${visitId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch visit details")
+      }
+
+      const data = await response.json()
+      setSpecificVisit(data.data || data)
+      setIsViewDialogOpen(true)
+    } catch (error) {
+      console.error("Error fetching visit details:", error)
+      toast.error("Failed to fetch visit details")
+    }
+  }
 
   const handleDeleteVisit = (visitId: string) => {
-    setSelectedVisitId(visitId);
-    setIsDeleteVisitDialogOpen(true);
-  };
+    setSelectedVisitId(visitId)
+    setIsDeleteVisitDialogOpen(true)
+  }
 
   const confirmDeleteVisit = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${selectedVisitId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to delete visit");
+        throw new Error("Failed to delete visit")
       }
 
       // Update the visits list after successful deletion
       if (visitsData) {
         setVisitsData({
           ...visitsData,
-          data: visitsData.data.filter(
-            (visit) => visit._id !== selectedVisitId
-          ),
-        });
+          data: visitsData.data.filter((visit) => visit._id !== selectedVisitId),
+        })
       }
-      toast.success("Visit deleted successfully");
+      toast.success("Visit deleted successfully")
     } catch (error) {
-      console.error("Error deleting visit:", error);
-      toast.error("Failed to delete visit");
+      console.error("Error deleting visit:", error)
+      toast.error("Failed to delete visit")
     } finally {
-      setIsDeleteVisitDialogOpen(false);
+      setIsDeleteVisitDialogOpen(false)
     }
-  };
+  }
 
   // Handle edit visit button click
   const handleEditVisit = (visit: VisitData) => {
-    setSelectedVisitId(visit._id);
+    setSelectedVisitId(visit._id)
     setEditVisitData({
       staff: visit.staff?._id || "",
       type: visit.type || "routine check",
       notes: visit.notes || "",
-    });
-    setIsEditVisitDialogOpen(true);
-  };
+    })
+    setIsEditVisitDialogOpen(true)
+  }
 
   // Handle edit visit form submission
   const handleEditVisitSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editVisitData),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${selectedVisitId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editVisitData),
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to update visit");
+        throw new Error("Failed to update visit")
       }
 
       // Refresh visits data after update
@@ -891,54 +751,51 @@ export default function DashboardPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
-      );
+        },
+      )
 
       if (res.ok) {
-        const data = await res.json();
-        setVisitsData(data);
+        const data = await res.json()
+        setVisitsData(data)
       }
 
-      toast.success("Visit updated successfully");
+      toast.success("Visit updated successfully")
     } catch (error) {
-      console.error("Error updating visit:", error);
-      toast.error("Failed to update visit");
+      console.error("Error updating visit:", error)
+      toast.error("Failed to update visit")
     } finally {
-      setIsEditVisitDialogOpen(false);
+      setIsEditVisitDialogOpen(false)
     }
-  };
+  }
 
   const handleOpenStatusModal = (visit: VisitData) => {
-    setSelectedVisitId(visit._id);
+    setSelectedVisitId(visit._id)
     setStatusForm({
       status: visit.status,
       notes: "",
-    });
-    setIsStatusModalOpen(true);
-  };
+    })
+    setIsStatusModalOpen(true)
+  }
 
   const handleStatusChange = async () => {
     if (!statusForm.status) {
-      toast.error("Please select a status");
-      return;
+      toast.error("Please select a status")
+      return
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${selectedVisitId}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(statusForm),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${selectedVisitId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(statusForm),
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to update status");
+        throw new Error("Failed to update status")
       }
 
       // Refresh visits data after update
@@ -950,198 +807,211 @@ export default function DashboardPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
-      );
+        },
+      )
 
       if (res.ok) {
-        const data = await res.json();
-        setVisitsData(data);
+        const data = await res.json()
+        setVisitsData(data)
       }
 
-      toast.success("Status updated successfully");
-      setIsStatusModalOpen(false);
-      setStatusForm({ status: "", notes: "" });
-      setSelectedVisitId("");
+      toast.success("Status updated successfully")
+      setIsStatusModalOpen(false)
+      setStatusForm({ status: "", notes: "" })
+      setSelectedVisitId("")
     } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error("Failed to update status. Please try again.");
+      console.error("Error updating status:", error)
+      toast.error("Failed to update status. Please try again.")
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   // Format date for display
   const formatDate = (dateString: string) => {
+    if (!dateString) return ""
+
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
+      const date = new Date(dateString)
+      return date.toLocaleDateString()
     } catch (error) {
-      console.error("Error formatting date:", error);
-      return dateString;
+      console.error("Error formatting date:", error)
+      return dateString
     }
-  };
+  }
 
   // Extract time from date for display
   const extractTime = (dateString: string) => {
+    if (!dateString) return ""
+
     try {
-      const date = new Date(dateString);
+      const date = new Date(dateString)
       return date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-      });
+      })
     } catch (error) {
-      console.error("Error extracting time:", error);
-      return "";
+      console.error("Error extracting time:", error)
+      return ""
     }
-  };
+  }
 
   const fetchRevenueData = async (range: string) => {
-    setIsRevenueLoading(true);
+    setIsRevenueLoading(true)
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/metrics/revenue-growth?range=${range}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        throw new Error(`API request failed with status ${response.status}`)
       }
-      const data: RevenueGrowthResponse = await response.json();
-      setRevenueData(data.data);
+      const data: RevenueGrowthResponse = await response.json()
+      setRevenueData(data.data)
     } catch (err) {
-      console.error("Error fetching revenue data:", err);
-      // toast.error("Failed to load revenue data");
+      console.error("Error fetching revenue data:", err)
     } finally {
-      setIsRevenueLoading(false);
+      setIsRevenueLoading(false)
     }
-  };
+  }
 
   const exportToPDF = async () => {
     if (chartRef.current) {
       try {
-        toast.info("Generating PDF...");
-        const canvas = await html2canvas(chartRef.current);
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("l", "mm", "a4");
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save("revenue-growth.pdf");
-        toast.success("PDF downloaded successfully");
+        toast.info("Generating PDF...")
+        const canvas = await html2canvas(chartRef.current)
+        const imgData = canvas.toDataURL("image/png")
+        const pdf = new jsPDF("l", "mm", "a4")
+        const imgProps = pdf.getImageProperties(imgData)
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
+        pdf.save("revenue-growth.pdf")
+        toast.success("PDF downloaded successfully")
       } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
+        console.error("Error generating PDF:", error)
+        toast.error("Failed to generate PDF")
       }
     }
-  };
+  }
 
   const getTimeRangeParam = (timeframe: string) => {
     switch (timeframe) {
       case "12months":
-        return "1y";
+        return "1y"
       case "30days":
-        return "30d";
+        return "30d"
       case "7days":
-        return "7d";
+        return "7d"
       default:
-        return "1y";
+        return "1y"
     }
-  };
+  }
 
   useEffect(() => {
     if (activeTab === "overview") {
-      fetchRevenueData(getTimeRangeParam(chartTimeframe));
+      fetchRevenueData(getTimeRangeParam(chartTimeframe))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, chartTimeframe, token]);
+  }, [activeTab, chartTimeframe, token])
 
   const handleUserPageChange = (page: number) => {
     if (page >= 1 && page <= totalUserPages) {
-      setCurrentUserPage(page);
+      setCurrentUserPage(page)
     }
-  };
+  }
 
   const handleVisitPageChange = (page: number) => {
     if (page >= 1 && page <= totalVisitPages) {
-      setCurrentVisitPage(page);
+      setCurrentVisitPage(page)
     }
-  };
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  }
+
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/notifications/admin`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/admin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
         if (!res.ok) {
-          throw new Error("Failed to fetch pending messages");
+          throw new Error("Failed to fetch pending messages")
         }
 
-        const data = await res.json();
-        setNotifications(data.data);
-        console.log("Notifications:", data.data);
+        const data = await res.json()
+        setNotifications(data.data)
         /* eslint-disable @typescript-eslint/no-explicit-any */
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: any ) {
+        setError(err.message)
       }
-    };
+    }
 
-    fetchNotifications();
-  }, [token]);
+    fetchNotifications()
+  }, [token])
+
+  // Fetch visits for the Overview tab
+  useEffect(() => {
+    const fetchVisitsForOverview = async () => {
+      if (activeTab === "overview" && !visitsData) {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?limit=10`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+
+          if (!res.ok) {
+            throw new Error("Failed to fetch visits")
+          }
+
+          const data: VisitResponse = await res.json()
+          setVisitsData(data)
+        } catch (err) {
+          console.error("Error fetching visits for overview:", err)
+        }
+      }
+    }
+
+    fetchVisitsForOverview()
+  }, [activeTab, token, visitsData])
 
   return (
     <div className="p-4 h-screen overflow-y-auto">
       <PageHeader title="Admin Name" />
 
       {error && (
-        <div
-          className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4"
-          role="alert"
-        >
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
           <p>{error}</p>
         </div>
       )}
 
-      <Tabs
-        defaultValue="overview"
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
         <div className="bg-white rounded-full p-1 mb-6 inline-flex mt-2">
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "overview" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""}`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "users" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""}`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "visits" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""}`}
             >
               Visits
             </TabsTrigger>
@@ -1162,9 +1032,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metrics.totalVisits}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metrics.totalVisits}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1179,9 +1047,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metrics.activeUsers}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metrics.activeUsers}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1196,9 +1062,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metrics.pendingVisits}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metrics.pendingVisits}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1212,37 +1076,25 @@ export default function DashboardPage() {
                     <CardTitle>Visits & Revenue Trends</CardTitle>
                     <div className="flex gap-1">
                       <Button
-                        variant={
-                          chartTimeframe === "12months" ? "default" : "outline"
-                        }
+                        variant={chartTimeframe === "12months" ? "default" : "outline"}
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "12months" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
                       </Button>
                       <Button
-                        variant={
-                          chartTimeframe === "30days" ? "default" : "outline"
-                        }
+                        variant={chartTimeframe === "30days" ? "default" : "outline"}
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "30days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
                       </Button>
                       <Button
-                        variant={
-                          chartTimeframe === "7days" ? "default" : "outline"
-                        }
+                        variant={chartTimeframe === "7days" ? "default" : "outline"}
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "7days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -1263,17 +1115,13 @@ export default function DashboardPage() {
                 <CardContent>
                   <div className="mt-4" ref={chartRef}>
                     <div className="mb-4">
-                      <div className="text-xs text-gray-500">
-                        Revenue Growth
-                      </div>
+                      <div className="text-xs text-gray-500">Revenue Growth</div>
                       <div className="text-xl font-bold">
                         {isRevenueLoading
                           ? "Loading..."
                           : revenueData.length > 0
-                          ? `$${revenueData[
-                              revenueData.length - 1
-                            ]?.revenue.toLocaleString()}`
-                          : "$0"}
+                            ? `$${revenueData[revenueData.length - 1]?.revenue.toLocaleString()}`
+                            : "$0"}
                       </div>
                     </div>
                     <div className="h-64">
@@ -1284,39 +1132,31 @@ export default function DashboardPage() {
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart className="p-1" data={revenueData}>
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              vertical={false}
-                            />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis
                               dataKey="date"
                               axisLine={false}
                               tickLine={false}
                               tickFormatter={(value) => {
-                                const date = new Date(value);
+                                const date = new Date(value)
                                 return `${date.toLocaleString("default", {
                                   month: "short",
-                                })}`;
+                                })}`
                               }}
                             />
                             <YAxis
                               axisLine={false}
                               tickLine={false}
-                              tickFormatter={(value) =>
-                                `$${value.toLocaleString()}`
-                              }
+                              tickFormatter={(value) => `$${value.toLocaleString()}`}
                             />
                             <Tooltip
-                              formatter={(value) => [
-                                `$${Number(value).toLocaleString()}`,
-                                "Revenue",
-                              ]}
+                              formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
                               labelFormatter={(label) => {
-                                const date = new Date(label);
+                                const date = new Date(label)
                                 return `${date.toLocaleString("default", {
                                   month: "long",
                                   year: "numeric",
-                                })}`;
+                                })}`
                               }}
                             />
                             <Line
@@ -1353,18 +1193,11 @@ export default function DashboardPage() {
                       <div>Price</div>
                     </div>
                     {recentData?.data.map((activity, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-3 items-center"
-                      >
-                        <div className="text-sm font-medium">
-                          {activity?.user?.fullname}
-                        </div>
+                      <div key={index} className="grid grid-cols-3 items-center">
+                        <div className="text-sm font-medium">{activity?.user?.fullname}</div>
                         <div className="text-sm">{activity?.plan?.name}</div>
                         <div>
-                          <span className={`px-2 py-1 rounded-full text-xs`}>
-                            {activity?.plan?.price}
-                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs`}>{activity?.plan?.price}</span>
                         </div>
                       </div>
                     ))}
@@ -1379,93 +1212,88 @@ export default function DashboardPage() {
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
-                    <CardTitle>Calendar</CardTitle>
+                    <CardTitle>All Visits </CardTitle>
                     <div className="flex gap-2">
-                      <Select defaultValue="month">
+                      <Select
+                        defaultValue="all"
+                        value={overviewVisitStatusFilter}
+                        onValueChange={(value) => setOverviewVisitStatusFilter(value)}
+                      >
                         <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="Month" />
+                          <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="month">Month</SelectItem>
-                          <SelectItem value="week">Week</SelectItem>
-                          <SelectItem value="day">Day</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select defaultValue="year">
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="Year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="year">Year</SelectItem>
-                          <SelectItem value="2023">2023</SelectItem>
-                          <SelectItem value="2022">2022</SelectItem>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Lorem ipsum dolor sit amet
-                  </div>
+                  <div className="text-xs text-gray-500">View and manage all scheduled visits</div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                    <div className="text-sm font-medium">Sun</div>
-                    <div className="text-sm font-medium">Mon</div>
-                    <div className="text-sm font-medium">Tue</div>
-                    <div className="text-sm font-medium">Wed</div>
-                    <div className="text-sm font-medium">Thu</div>
-                    <div className="text-sm font-medium">Fri</div>
-                    <div className="text-sm font-medium">Sat</div>
-                  </div>
-                  {calendarDays.map((week, weekIndex) => (
-                    <div
-                      key={weekIndex}
-                      className="grid grid-cols-7 gap-1 mb-1"
-                    >
-                      {week.map((day, dayIndex) => (
-                        <div
-                          key={dayIndex}
-                          className={`p-2 rounded-md text-center relative ${getCalendarDayClass(
-                            day.status
-                          )}`}
-                        >
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                    {visitsData?.data && visitsData.data.length > 0 ? (
+                      filteredOverviewVisits.map((visit) => (
+                        <div key={visit._id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                           <div
-                            className={
-                              day.day === 13 || day.day === 21
-                                ? "text-red-500"
-                                : day.day === 30
-                                ? "text-yellow-500"
-                                : ""
-                            }
-                          >
-                            {day.day}
-                          </div>
-                          {day.hasVisit && (
-                            <div className="mt-1 bg-blue-600 text-white text-xs p-1 rounded">
-                              {day.visitTime} Visit
+                            className={`w-2 self-stretch rounded-full ${visit.status.toLowerCase() === "completed"
+                                ? "bg-green-500"
+                                : visit.status.toLowerCase() === "cancelled"
+                                  ? "bg-red-500"
+                                  : visit.status.toLowerCase() === "confirmed"
+                                    ? "bg-blue-500"
+                                    : "bg-yellow-500"
+                              }`}
+                          ></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium text-sm truncate">{visit.client.fullname}</h4>
+                                <p className="text-xs text-gray-500 mt-1">{visit.address}</p>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}>
+                                {visit.status}
+                              </span>
                             </div>
-                          )}
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(visit.date)}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {extractTime(visit.date)}
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                              <div className="text-xs">
+                                {visit.staff ? (
+                                  <span className="text-gray-700">Staff: {visit.staff.fullname}</span>
+                                ) : (
+                                  <span className="text-gray-400">No staff assigned</span>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => handleViewVisit(visit._id)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ))}
-                  <div className="flex gap-4 mt-4">
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      <span className="text-xs">Successful Visit</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span className="text-xs">Cancelled Visit</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <span className="text-xs">Pending visit</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <span className="text-xs">Confirmed Visit</span>
-                    </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        {isLoading ? "Loading visits..." : "No visits found"}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1482,17 +1310,11 @@ export default function DashboardPage() {
                     {notifications.map((notification, index) => (
                       <div key={index} className="flex justify-between">
                         <div>
-                          <div className="text-sm font-medium">
-                            {notification?.message}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {notification.time}
-                          </div>
+                          <div className="text-sm font-medium">{notification?.message}</div>
+                          <div className="text-xs text-gray-500">{notification.time}</div>
                         </div>
                         <div className="text-xs text-gray-500">
-                          {notification?.time?.includes("h")
-                            ? notification.time
-                            : ""}
+                          {notification?.time?.includes("h") ? notification.time : ""}
                         </div>
                       </div>
                     ))}
@@ -1517,9 +1339,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metrics.activeUsers}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metrics.activeUsers}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1533,9 +1353,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">
-                  {metrics.totalSecurityStaff}
-                </div>
+                <div className="text-4xl font-bold text-navy-900">{metrics.totalSecurityStaff}</div>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -1548,9 +1366,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">
-                  {metrics.totalAdmin}
-                </div>
+                <div className="text-4xl font-bold text-navy-900">{metrics.totalAdmin}</div>
               </CardContent>
             </Card>
           </div>
@@ -1609,38 +1425,22 @@ export default function DashboardPage() {
                     {filteredUsers.length > 0 ? (
                       filteredUsers.map((user, index) => (
                         <TableRow key={user._id}>
-                          <TableCell>
-                            {(currentUserPage - 1) * itemsPerPage + index + 1}
-                          </TableCell>
+                          <TableCell>{(currentUserPage - 1) * itemsPerPage + index + 1}</TableCell>
                           <TableCell>{user.fullname}</TableCell>
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.role}</TableCell>
                           <TableCell>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                                user.status
-                              )}`}
-                            >
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(user.status)}`}>
                               {user.status}
                             </span>
                           </TableCell>
-                          <TableCell>
-                            {new Date(user.lastActive).toLocaleDateString()}
-                          </TableCell>
+                          <TableCell>{new Date(user.lastActive).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditClick(user)}
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleEditClick(user)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteClick(user._id)}
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(user._id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -1664,11 +1464,8 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mt-4 text-sm">
                 <div>
                   Showing {(currentUserPage - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(
-                    currentUserPage * itemsPerPage,
-                    totalUserPages * itemsPerPage
-                  )}{" "}
-                  of {totalUserPages * itemsPerPage} results
+                  {Math.min(currentUserPage * itemsPerPage, totalUserPages * itemsPerPage)} of{" "}
+                  {totalUserPages * itemsPerPage} results
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -1680,17 +1477,12 @@ export default function DashboardPage() {
                     <span className="sr-only">Previous page</span>
                     &lt;
                   </Button>
-                  {Array.from(
-                    { length: totalUserPages },
-                    (_, index) => index + 1
-                  ).map((page) => (
+                  {Array.from({ length: totalUserPages }, (_, index) => index + 1).map((page) => (
                     <Button
                       key={page}
                       variant="outline"
                       size="sm"
-                      className={`h-8 w-8 p-0 ${
-                        currentUserPage === page ? "bg-yellow-100" : ""
-                      }`}
+                      className={`h-8 w-8 p-0 ${currentUserPage === page ? "bg-yellow-100" : ""}`}
                       onClick={() => handleUserPageChange(page)}
                     >
                       {page}
@@ -1725,9 +1517,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metricsData?.activeUsersCount}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metricsData?.activeUsersCount}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1741,9 +1531,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-navy-900">
-                  {metricsData?.completedVisitCount}
-                </div>
+                <div className="text-4xl font-bold text-navy-900">{metricsData?.completedVisitCount}</div>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -1757,9 +1545,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <div className="text-4xl font-bold text-navy-900">
-                    {metricsData?.confirmedVisitCount}
-                  </div>
+                  <div className="text-4xl font-bold text-navy-900">{metricsData?.confirmedVisitCount}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1782,10 +1568,10 @@ export default function DashboardPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
                 </SelectContent>
               </Select>
               <Select defaultValue="all" onValueChange={setVisitDateFilter}>
@@ -1799,9 +1585,7 @@ export default function DashboardPage() {
                   <SelectItem value="thismonth">This Month</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-[#091057] hover:bg-[#091057]/80">
-                Add Visit
-              </Button>
+              <Button className="bg-[#091057] hover:bg-[#091057]/80">Add Visit</Button>
             </div>
           </div>
 
@@ -1829,50 +1613,28 @@ export default function DashboardPage() {
                         <TableCell>{extractTime(visit.date)}</TableCell>
                         <TableCell>{visit.address}</TableCell>
                         <TableCell>{visit?.client?.fullname}</TableCell>
+                        <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
                         <TableCell>
-                          {visit.staff?.fullname || "Not Assigned"}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                              visit.status
-                            )}`}
-                          >
+                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}>
                             {visit.status}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditVisit(visit)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleEditVisit(visit)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenStatusModal(visit)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenStatusModal(visit)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteVisit(visit._id)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteVisit(visit._id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleViewVisit(visit._id)}
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => handleViewVisit(visit._id)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>
@@ -1896,11 +1658,8 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mt-4 text-sm">
               <div>
                 Showing {(currentVisitPage - 1) * visitsPerPage + 1} to{" "}
-                {Math.min(
-                  currentVisitPage * visitsPerPage,
-                  totalVisitPages * visitsPerPage
-                )}{" "}
-                of {totalVisitPages * visitsPerPage} results
+                {Math.min(currentVisitPage * visitsPerPage, totalVisitPages * visitsPerPage)} of{" "}
+                {totalVisitPages * visitsPerPage} results
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -1912,17 +1671,12 @@ export default function DashboardPage() {
                   <span className="sr-only">Previous page</span>
                   &lt;
                 </Button>
-                {Array.from(
-                  { length: totalVisitPages },
-                  (_, index) => index + 1
-                ).map((page) => (
+                {Array.from({ length: totalVisitPages }, (_, index) => index + 1).map((page) => (
                   <Button
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${
-                      currentVisitPage === page ? "bg-yellow-100" : ""
-                    }`}
+                    className={`h-8 w-8 p-0 ${currentVisitPage === page ? "bg-yellow-100" : ""}`}
                     onClick={() => handleVisitPageChange(page)}
                   >
                     {page}
@@ -1949,15 +1703,11 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this user? This action cannot be
-              undone.
+              Are you sure you want to delete this user? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex space-x-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
@@ -1996,9 +1746,7 @@ export default function DashboardPage() {
                   id="email"
                   type="email"
                   value={editUserData.email}
-                  onChange={(e) =>
-                    setEditUserData({ ...editUserData, email: e.target.value })
-                  }
+                  onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
                   required
                 />
               </div>
@@ -2048,9 +1796,7 @@ export default function DashboardPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Visit Details</DialogTitle>
-            <DialogDescription>
-              Detailed information about the selected visit
-            </DialogDescription>
+            <DialogDescription>Detailed information about the selected visit</DialogDescription>
           </DialogHeader>
           {specificVisit ? (
             <div className="grid gap-4 py-4">
@@ -2072,9 +1818,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-1">Date</h4>
-                  <p className="text-sm">
-                    {formatDate(specificVisit.date || "")}
-                  </p>
+                  <p className="text-sm">{formatDate(specificVisit.date || "")}</p>
                 </div>
               </div>
 
@@ -2086,22 +1830,15 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium mb-1">Status</h4>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                      specificVisit.status || ""
-                    )}`}
-                  >
+                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(specificVisit.status || "")}`}>
                     {specificVisit.status}
                   </span>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-1">Payment</h4>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      specificVisit.isPaid
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs ${specificVisit.isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      }`}
                   >
                     {specificVisit.isPaid ? "Paid" : "Unpaid"}
                   </span>
@@ -2110,9 +1847,7 @@ export default function DashboardPage() {
 
               <div>
                 <h4 className="text-sm font-medium mb-1">Notes</h4>
-                <p className="text-sm">
-                  {specificVisit.notes || "No notes available"}
-                </p>
+                <p className="text-sm">{specificVisit.notes || "No notes available"}</p>
               </div>
 
               {specificVisit.issues && specificVisit.issues.length > 0 && (
@@ -2128,11 +1863,8 @@ export default function DashboardPage() {
                         <div>
                           <h5 className="text-xs font-medium">Type</h5>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              issue.type === "warning"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs ${issue.type === "warning" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"
+                              }`}
                           >
                             {issue.type}
                           </span>
@@ -2192,23 +1924,16 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Delete Visit Confirmation Dialog */}
-      <Dialog
-        open={isDeleteVisitDialogOpen}
-        onOpenChange={setIsDeleteVisitDialogOpen}
-      >
+      <Dialog open={isDeleteVisitDialogOpen} onOpenChange={setIsDeleteVisitDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirm Visit Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this visit? This action cannot be
-              undone.
+              Are you sure you want to delete this visit? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex space-x-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteVisitDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsDeleteVisitDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDeleteVisit}>
@@ -2219,10 +1944,7 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Edit Visit Dialog */}
-      <Dialog
-        open={isEditVisitDialogOpen}
-        onOpenChange={setIsEditVisitDialogOpen}
-      >
+      <Dialog open={isEditVisitDialogOpen} onOpenChange={setIsEditVisitDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Visit</DialogTitle>
@@ -2234,9 +1956,7 @@ export default function DashboardPage() {
                 <Label htmlFor="staff">Staff</Label>
                 <Select
                   value={editVisitData.staff}
-                  onValueChange={(value) =>
-                    setEditVisitData({ ...editVisitData, staff: value })
-                  }
+                  onValueChange={(value) => setEditVisitData({ ...editVisitData, staff: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select staff member" />
@@ -2254,9 +1974,7 @@ export default function DashboardPage() {
                 <Label htmlFor="type">Visit Type</Label>
                 <Select
                   value={editVisitData.type}
-                  onValueChange={(value) =>
-                    setEditVisitData({ ...editVisitData, type: value })
-                  }
+                  onValueChange={(value) => setEditVisitData({ ...editVisitData, type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select visit type" />
@@ -2297,29 +2015,23 @@ export default function DashboardPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Update Visit Status</DialogTitle>
-            <DialogDescription>
-              Update the status and add notes for this visit
-            </DialogDescription>
+            <DialogDescription>Update the status and add notes for this visit</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={statusForm.status}
-                onValueChange={(value) =>
-                  setStatusForm({ ...statusForm, status: value })
-                }
+                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* [ " completed", "cancelled", "confirmed",
-                  "pending" ] */}
-                  {/* <SelectItem value="Pending">Pending</SelectItem> */}
-                  {/* <SelectItem value="confirmed">Confirmed</SelectItem> */}
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -2328,26 +2040,17 @@ export default function DashboardPage() {
               <Textarea
                 id="notes"
                 value={statusForm.notes}
-                onChange={(e) =>
-                  setStatusForm({ ...statusForm, notes: e.target.value })
-                }
+                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
                 placeholder="Add notes"
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter className="flex space-x-2 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setIsStatusModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleStatusChange}
-              disabled={isSubmitting}
-              className="bg-[#091057] hover:bg-[#091057]/80"
-            >
+            <Button onClick={handleStatusChange} disabled={isSubmitting} className="bg-[#091057] hover:bg-[#091057]/80">
               {isSubmitting ? "Updating..." : "Update Status"}
             </Button>
           </DialogFooter>
@@ -2355,5 +2058,5 @@ export default function DashboardPage() {
       </Dialog>
       {/* --- END IMPLEMENTATION --- */}
     </div>
-  );
+  )
 }
