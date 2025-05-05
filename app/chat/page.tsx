@@ -118,7 +118,7 @@ export default function AdminChatPage() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[93vh]">
       <div className="w-80 flex-shrink-0">
         <div className="h-16 border-b flex items-center px-4">
           <h1 className="font-semibold">Admin Dashboard</h1>
