@@ -31,7 +31,7 @@ import {
   Eye,
   Trash2,
   FileText,
-  ChevronRight,
+
 } from "lucide-react";
 import {
   Line,
@@ -257,6 +257,40 @@ interface AllMetrics {
   completedVisitCount: number;
 }
 
+interface User {
+  _id: string;
+  fullname: string;
+  email: string;
+  role: string;
+}
+
+// Interface for each notification object in the data array
+interface Notification {
+  _id: string;
+  userId: User;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string; // ISO 8601 date string
+  __v: number;
+  displayUser: User;
+}
+
+// Interface for the pagination object
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+// Interface for the root JSON object
+// interface Notificationresponse {
+//   success: boolean;
+//   data: Notification[];
+//   pagination: Pagination;
+// }
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
@@ -362,50 +396,16 @@ export default function DashboardPage() {
   ];
 
   // Sample notifications data
-  const notifications: Notification[] = [
-    {
-      type: "Visit scheduled",
-      message: "Visit scheduled for March 26",
-      time: "2h Ago",
-    },
-    {
-      type: "New message",
-      message: "New message from Security Team",
-      time: "Mar 19, 13:30 AM",
-    },
-    {
-      type: "New message",
-      message: "New message from Security Team",
-      time: "Mar 19, 13:30 AM",
-    },
-    {
-      type: "Visit log",
-      message: "Visit log updated",
-      time: "Mar 22, 13:30 AM",
-    },
-    {
-      type: "New message",
-      message: "New message from Security Team",
-      time: "Mar 19, 13:30 AM",
-    },
-    {
-      type: "Visit log",
-      message: "Visit log updated",
-      time: "Mar 22, 13:30 AM",
-    },
-    {
-      type: "Visit log",
-      message: "Visit log updated",
-      time: "Mar 22, 13:30 AM",
-    },
-  ];
+
 
   const [metricsData, setMetricsData] = useState<AllMetrics | null>(null);
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
   const session = useSession();
-  const token = session?.data?.accessToken || "";
+  const token = session?.data?.accessToken;
+  console.log("token", token);
+
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -1067,6 +1067,34 @@ export default function DashboardPage() {
       setCurrentVisitPage(page);
     }
   };
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/notifications/admin`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch pending messages");
+        }
+
+        const data = await res.json();
+        setNotifications(data.data);
+        console.log("Notifications:", data.data);
+
+      } catch (err: any) {
+        setError(err.message);
+      }
+    };
+
+    fetchNotifications();
+  }, [token]);
 
   return (
     <div className="p-4 h-screen overflow-y-auto">
@@ -1250,7 +1278,7 @@ export default function DashboardPage() {
                         </div>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={revenueData}>
+                          <LineChart className="p-1" data={revenueData}>
                             <CartesianGrid
                               strokeDasharray="3 3"
                               vertical={false}
@@ -1443,9 +1471,6 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-center">
                     <CardTitle>Notifications</CardTitle>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Lorem ipsum dolor sit amet
-                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -1453,29 +1478,19 @@ export default function DashboardPage() {
                       <div key={index} className="flex justify-between">
                         <div>
                           <div className="text-sm font-medium">
-                            {notification.message}
+                            {notification?.message}
                           </div>
                           <div className="text-xs text-gray-500">
                             {notification.time}
                           </div>
                         </div>
                         <div className="text-xs text-gray-500">
-                          {notification.time.includes("h")
+                          {notification?.time?.includes("h")
                             ? notification.time
                             : ""}
                         </div>
                       </div>
                     ))}
-                    <div className="flex justify-end mt-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs flex items-center"
-                      >
-                        See All Notifications
-                        <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -2077,11 +2092,10 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="text-sm font-medium mb-1">Payment</h4>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      specificVisit.isPaid
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs ${specificVisit.isPaid
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                      }`}
                   >
                     {specificVisit.isPaid ? "Paid" : "Unpaid"}
                   </span>
@@ -2108,11 +2122,10 @@ export default function DashboardPage() {
                         <div>
                           <h5 className="text-xs font-medium">Type</h5>
                           <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              issue.type === "warning"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs ${issue.type === "warning"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                              }`}
                           >
                             {issue.type}
                           </span>
