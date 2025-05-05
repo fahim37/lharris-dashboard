@@ -147,15 +147,15 @@ export default function MediaPage() {
 
   return (
     <div className="">
-      <PageHeader/>
-      <div className="space-y-4 px-20 mt-16">
+      <PageHeader />
+      <div className="space-y-4 px-5 mt-5">
         {visits?.data?.length === 0 ? (
           <div className="col-span-full text-center py-10">No media found</div>
         ) : (
           <div className="">
             <div className="flex justify-end mb-12">
               <Button
-                className="bg-[#0a1172] hover:bg-[#1a2182] h-12 px-6"
+                className="bg-[#0a1172] hover:bg-[#1a2182]"
                 onClick={openModal}
               >
                 + Add Media
