@@ -297,6 +297,8 @@ export default function DashboardPage() {
   const [visitsPerPage] = useState<number>(5)
 
   const [metricsData, setMetricsData] = useState<AllMetrics | null>(null)
+  console.log("Metrics Data:", metricsData);
+  
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([])
   const [isRevenueLoading, setIsRevenueLoading] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
@@ -330,7 +332,7 @@ export default function DashboardPage() {
         // Update metrics with data from API
         setMetrics({
           activeUsers: data?.data?.activeUsersCount || 128,
-          totalVisits: data?.data?.activeUsersCount || 342,
+          totalVisits: data?.data?.totalVisits || 342,
           pendingVisits: data?.data?.pendingVisits ?? 12,
           totalSecurityStaff: data?.data?.totalStaffMembers || 342,
           totalAdmin: data?.data?.totalAdmins || 28,
@@ -1027,12 +1029,12 @@ export default function DashboardPage() {
                   <div className="mr-2 text-blue-600">
                     <Calendar className="h-5 w-5" />
                   </div>
-                  Total Visits
+                  Total Visits 
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metrics.totalVisits}</div>
+                  <div className="text-4xl font-bold text-navy-900">{metricsData?.totalVisits}</div>
                 </div>
               </CardContent>
             </Card>
@@ -1512,12 +1514,12 @@ export default function DashboardPage() {
                   <div className="mr-2 text-blue-600">
                     <Calendar className="h-5 w-5" />
                   </div>
-                  Total Visits
+                  Total Visits 
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-4xl font-bold text-navy-900">{metricsData?.activeUsersCount}</div>
+                  <div className="text-4xl font-bold text-navy-900">{metricsData?.totalVisits}</div>
                 </div>
               </CardContent>
             </Card>
@@ -2060,3 +2062,4 @@ export default function DashboardPage() {
     </div>
   )
 }
+

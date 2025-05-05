@@ -1,121 +1,111 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react"
+import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Pencil, Trash2, Eye, Loader2, UserPlus } from "lucide-react"
+import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { Pencil, Trash2, Eye, Loader2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
-import { useSession } from "next-auth/react";
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 interface Visit {
-  id: string;
-  clientName: string;
-  staffName: string;
-  date: string;
-  type: string;
-  status: string;
-  clientEmail?: string;
-  address?: string;
-  notes?: string;
+  id: string
+  clientName: string
+  staffName: string
+  date: string
+  type: string
+  status: string
+  clientEmail?: string
+  address?: string
+  notes?: string
 }
 
 interface Staff {
-  _id: string;
-  fullname: string;
+  _id: string
+  fullname: string
 }
 
 interface VisitApiResponse {
-  _id: string;
+  _id: string
   client?: {
-    fullname?: string;
-    email?: string;
-  };
+    fullname?: string
+    email?: string
+  }
   staff?: {
-    fullname?: string;
-    _id?: string;
-  };
-  date: string;
-  type?: string;
-  status?: string;
-  address?: string;
-  notes?: string;
+    fullname?: string
+    _id?: string
+  }
+  date: string
+  type?: string
+  status?: string
+  address?: string
+  notes?: string
 }
 
 interface PaginatedVisitsResponse {
-  data: VisitApiResponse[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  data: VisitApiResponse[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 interface FormData {
-  clientEmail: string;
-  staff: string;
-  address: string;
-  date: string;
-  time: string;
-  type: string;
-  notes?: string;
+  clientEmail: string
+  staff: string
+  address: string
+  date: string
+  time: string
+  type: string
+  notes?: string
 }
 
 interface FormErrors {
-  clientEmail: string;
-  staff: string;
-  address: string;
-  date: string;
-  time: string;
-  type: string;
+  clientEmail: string
+  staff: string
+  address: string
+  date: string
+  time: string
+  type: string
 }
 
 export function VisitPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [isAddVisitOpen, setIsAddVisitOpen] = useState(false);
-  const [isViewVisitOpen, setIsViewVisitOpen] = useState(false);
-  const [isEditVisitOpen, setIsEditVisitOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [isAssignStaffOpen, setIsAssignStaffOpen] = useState(false);
-  const [currentVisit, setCurrentVisit] = useState<Visit | null>(null);
-  const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
-  const [visits, setVisits] = useState<Visit[]>([]);
-  const [staffList, setStaffList] = useState<Staff[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [isAddVisitOpen, setIsAddVisitOpen] = useState(false)
+  const [isViewVisitOpen, setIsViewVisitOpen] = useState(false)
+  const [isEditVisitOpen, setIsEditVisitOpen] = useState(false)
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
+  const [isAssignStaffOpen, setIsAssignStaffOpen] = useState(false)
+  const [currentVisit, setCurrentVisit] = useState<Visit | null>(null)
+  const [visitToDelete, setVisitToDelete] = useState<string | null>(null)
+  const [visits, setVisits] = useState<Visit[]>([])
+  const [staffList, setStaffList] = useState<Staff[]>([])
+  const [isAdding, setIsAdding] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAssigning, setIsAssigning] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [page, setPage] = useState(2)
+  const [pageSize] = useState(5)
+  const [totalPages, setTotalPages] = useState(1)
 
-  const session = useSession();
-  const token = session.data?.accessToken;
+  const session = useSession()
+  const token = session.data?.accessToken
 
   const [addFormData, setAddFormData] = useState<FormData>({
     clientEmail: "",
@@ -124,7 +114,7 @@ export function VisitPage() {
     date: "",
     time: "",
     type: "",
-  });
+  })
 
   const [editFormData, setEditFormData] = useState<FormData>({
     clientEmail: "",
@@ -134,17 +124,17 @@ export function VisitPage() {
     time: "",
     type: "",
     notes: "",
-  });
+  })
 
   const [statusForm, setStatusForm] = useState({
     status: "",
     notes: "",
-  });
+  })
 
   const [assignStaffForm, setAssignStaffForm] = useState({
     staffId: "",
     notes: "",
-  });
+  })
 
   const [formErrors, setFormErrors] = useState<FormErrors>({
     clientEmail: "",
@@ -153,70 +143,114 @@ export function VisitPage() {
     date: "",
     time: "",
     type: "",
-  });
+  })
 
   // Validation function
   const validateForm = (formData: FormData) => {
-    const errors: Partial<FormErrors> = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const errors: Partial<FormErrors> = {}
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
     if (!formData.clientEmail) {
-      errors.clientEmail = "Client email is required";
+      errors.clientEmail = "Client email is required"
     } else if (!emailRegex.test(formData.clientEmail)) {
-      errors.clientEmail = "Invalid email format";
+      errors.clientEmail = "Invalid email format"
     }
 
-    if (!formData.staff) errors.staff = "Staff selection is required";
-    if (!formData.address) errors.address = "Address is required";
-    if (!formData.date) errors.date = "Date is required";
-    if (!formData.time) errors.time = "Time is required";
-    if (!formData.type) errors.type = "Visit type is required";
+    if (!formData.staff) errors.staff = "Staff selection is required"
+    if (!formData.address) errors.address = "Address is required"
+    if (!formData.date) errors.date = "Date is required"
+    if (!formData.time) errors.time = "Time is required"
+    if (!formData.type) errors.type = "Visit type is required"
 
-    return errors as FormErrors;
-  };
+    return errors as FormErrors
+  }
 
   // Clear specific error when input changes
   const clearFormError = (field: keyof FormErrors) => {
-    setFormErrors((prev) => ({ ...prev, [field]: "" }));
-  };
+    setFormErrors((prev) => ({ ...prev, [field]: "" }))
+  }
+
+  const refreshVisitData = async () => {
+    setIsLoading(true)
+    try {
+      if (!token) throw new Error("No authentication token found")
+
+      const visitsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
+      if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
+      const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
+      console.log(visitsResponse, "visitsData");
+     
+      setVisits(
+        visitsData.data.map((visit: VisitApiResponse) => ({
+          id: visit._id,
+          clientName: visit.client?.fullname || "N/A",
+          clientEmail: visit.client?.email || "",
+          staffName: visit.staff?.fullname || "Staff not assigned",
+          date: visit.date,
+          type: visit.type || "N/A",
+          status: visit.status || "pending",
+          address: visit.address || "",
+          notes: visit.notes || "",
+        })),
+      )
+      setTotalPages(Math.max(1, visitsData.totalPages))
+      return true
+    } catch (error) {
+      console.error("Error refreshing visit data:", error)
+      toast.error("Failed to refresh data")
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Fetch visits and staff from API
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true)
       try {
-        if (!token) return;
+        if (!token) return
 
         // Fetch visits with pagination
         const visitsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&pageSize=${pageSize}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&limit=${pageSize}`,
           {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
-        );
+          },
+        )
 
-        if (!visitsResponse.ok) throw new Error("Failed to fetch visits");
-        const visitsData: PaginatedVisitsResponse = await visitsResponse.json();
+        if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
+        const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
 
-        // Fetch staff
-        const staffResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`,
-          {
+        // Fetch staff only once when component mounts or token changes
+        if (staffList.length === 0) {
+          const staffResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/all-staff`, {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
-        );
+          })
 
-        if (!staffResponse.ok) throw new Error("Failed to fetch staff");
-        const { data: staffData } = await staffResponse.json();
+          if (!staffResponse.ok) throw new Error("Failed to fetch staff")
+          const { data: staffData } = await staffResponse.json()
+          setStaffList(staffData)
+        }
 
-        // Transform visits data
-        const transformedVisits = visitsData.data.map(
-          (visit: VisitApiResponse) => ({
+        // Transform API data to component state
+        setVisits(
+          visitsData.data.map((visit: VisitApiResponse) => ({
             id: visit._id,
             clientName: visit.client?.fullname || "N/A",
             clientEmail: visit.client?.email || "",
@@ -226,73 +260,85 @@ export function VisitPage() {
             status: visit.status || "pending",
             address: visit.address || "",
             notes: visit.notes || "",
-          })
-        );
-
-        setVisits(transformedVisits);
-        setStaffList(staffData);
-        setTotalPages(visitsData.totalPages);
+          })),
+        )
+        setTotalPages(Math.max(1, visitsData.totalPages))
       } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load data");
+        console.error("Error fetching data:", error)
+        toast.error("Failed to load data")
+      } finally {
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, [token, page, pageSize]);
+    fetchData()
+  }, [token, page, pageSize, staffList.length])
 
   // Populate edit form when currentVisit changes
   useEffect(() => {
     if (currentVisit) {
-      const visitDate = new Date(currentVisit.date);
+      const visitDate = new Date(currentVisit.date)
       setEditFormData({
         clientEmail: currentVisit.clientEmail || "",
-        staff:
-          staffList.find((s) => s.fullname === currentVisit.staffName)?._id ||
-          "",
+        staff: staffList.find((s) => s.fullname === currentVisit.staffName)?._id || "",
         address: currentVisit.address || "",
         date: visitDate.toISOString().split("T")[0],
         time: visitDate.toTimeString().slice(0, 5),
         type: currentVisit.type,
         notes: currentVisit.notes || "",
-      });
+      })
       setAssignStaffForm({
-        staffId:
-          staffList.find((s) => s.fullname === currentVisit.staffName)?._id ||
-          "",
+        staffId: staffList.find((s) => s.fullname === currentVisit.staffName)?._id || "",
         notes: currentVisit.notes || "",
-      });
+      })
     }
-  }, [currentVisit, staffList]);
+  }, [currentVisit, staffList])
 
-  const filteredVisits = visits.filter((visit) => {
-    const matchesSearch =
-      visit.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visit.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visit.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const [filteredVisits, setFilteredVisits] = useState<Visit[]>([])
 
-    const matchesStatus =
-      selectedStatus === "all" || visit.status === selectedStatus;
+  useEffect(() => {
+    const filtered = visits.filter((visit) => {
+      const matchesSearch =
+        visit.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit.id.toLowerCase().includes(searchTerm.toLowerCase())
 
-    return matchesSearch && matchesStatus;
-  });
+      const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus
+
+      return matchesSearch && matchesStatus
+    })
+
+    setFilteredVisits(filtered)
+  }, [visits, searchTerm, selectedStatus])
+
+  useEffect(() => {
+    // Reset to page 1 when search term or status filter changes
+    setPage(1)
+  }, [searchTerm, selectedStatus])
+
+  // Calculate total pages for filtered results
+  useEffect(() => {
+    if (searchTerm || selectedStatus !== "all") {
+      // When filtering, we're handling pagination on the client side
+      const calculatedPages = Math.max(1, Math.ceil(filteredVisits.length / pageSize))
+      setTotalPages(calculatedPages)
+    }
+  }, [filteredVisits, pageSize, searchTerm, selectedStatus])
 
   const handleAddVisit = async () => {
-    const errors = validateForm(addFormData);
-    setFormErrors(errors);
+    const errors = validateForm(addFormData)
+    setFormErrors(errors)
 
     if (Object.keys(errors).length > 0) {
-      toast.error("Please fix the form errors");
-      return;
+      toast.error("Please fix the form errors")
+      return
     }
 
-    setIsAdding(true);
+    setIsAdding(true)
     try {
-      if (!token) throw new Error("No authentication token found");
+      if (!token) throw new Error("No authentication token found")
 
-      const isoDateTime = new Date(
-        `${addFormData.date}T${addFormData.time}:00Z`
-      ).toISOString();
+      const isoDateTime = new Date(`${addFormData.date}T${addFormData.time}:00Z`).toISOString()
 
       const payload = {
         clientEmail: addFormData.clientEmail,
@@ -300,48 +346,27 @@ export function VisitPage() {
         address: addFormData.address,
         date: isoDateTime,
         type: addFormData.type,
-      };
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit-admin`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add visit");
       }
 
-      const newVisit = await response.json();
-      const staffName =
-        staffList.find((s) => s._id === addFormData.staff)?.fullname ||
-        "Staff not assigned";
-
-      // Update visits state with new visit including staff name
-      setVisits((prev) => [
-        {
-          id: newVisit.data._id,
-          clientName: newVisit.data.client?.fullname || addFormData.clientEmail,
-          clientEmail: addFormData.clientEmail,
-          staffName,
-          date: newVisit.data.date,
-          type: newVisit.data.type || addFormData.type,
-          status: newVisit.data.status || "pending",
-          address: addFormData.address,
-          notes: newVisit.data.notes || "",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/create-visit-admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        ...prev,
-      ]);
+        body: JSON.stringify(payload),
+      })
 
-      toast.success("Visit added successfully");
-      setIsAddVisitOpen(false);
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to add visit")
+      }
+
+      // Refresh data using the reusable function
+      await refreshVisitData()
+
+      toast.success("Visit added successfully")
+      setIsAddVisitOpen(false)
       setAddFormData({
         clientEmail: "",
         staff: "",
@@ -349,259 +374,278 @@ export function VisitPage() {
         date: "",
         time: "",
         type: "",
-      });
+      })
     } catch (error) {
-      console.error("Error adding visit:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to add visit"
-      );
+      console.error("Error adding visit:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to add visit")
     } finally {
-      setIsAdding(false);
+      setIsAdding(false)
     }
-  };
+  }
 
   const handleEditVisit = async () => {
-    const errors = validateForm(editFormData);
-    setFormErrors(errors);
+    const errors = validateForm(editFormData)
+    setFormErrors(errors)
 
     if (Object.keys(errors).length > 0) {
-      toast.error("Please fix the form errors");
-      return;
+      toast.error("Please fix the form errors")
+      return
     }
 
-    if (!currentVisit) return;
-    setIsEditing(true);
+    if (!currentVisit) return
+    setIsEditing(true)
     try {
-      if (!token) throw new Error("No authentication token found");
+      if (!token) throw new Error("No authentication token found")
 
-      const isoDateTime = new Date(
-        `${editFormData.date}T${editFormData.time}:00Z`
-      ).toISOString();
+      const isoDateTime = new Date(`${editFormData.date}T${editFormData.time}:00Z`).toISOString()
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            clientEmail: editFormData.clientEmail,
-            staff: editFormData.staff,
-            address: editFormData.address,
-            date: isoDateTime,
-            type: editFormData.type,
-            notes: editFormData.notes,
-          }),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clientEmail: editFormData.clientEmail,
+          staff: editFormData.staff,
+          address: editFormData.address,
+          date: isoDateTime,
+          type: editFormData.type,
+          notes: editFormData.notes,
+        }),
+      })
 
-      if (!response.ok) throw new Error("Failed to update visit");
+      if (!response.ok) throw new Error("Failed to update visit")
 
-      const updatedVisit = await response.json();
-      const staffName =
-        staffList.find((s) => s._id === editFormData.staff)?.fullname ||
-        "Staff not assigned";
+      // Refresh data using the reusable function
+      await refreshVisitData()
 
-      // Update the visit in state
-      setVisits((prev) =>
-        prev.map((visit) =>
-          visit.id === currentVisit.id
-            ? {
-                ...visit,
-                clientName:
-                  updatedVisit.data.client?.fullname ||
-                  editFormData.clientEmail,
-                clientEmail: editFormData.clientEmail,
-                staffName,
-                date: updatedVisit.data.date,
-                type: updatedVisit.data.type || editFormData.type,
-                address: editFormData.address,
-                notes: editFormData.notes,
-              }
-            : visit
-        )
-      );
-
-      toast.success("Visit updated successfully");
-      setIsEditVisitOpen(false);
-      setCurrentVisit(null);
+      toast.success("Visit updated successfully")
+      setIsEditVisitOpen(false)
+      setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating visit:", error);
-      toast.error("Failed to update visit");
+      console.error("Error updating visit:", error)
+      toast.error("Failed to update visit")
     } finally {
-      setIsEditing(false);
+      setIsEditing(false)
     }
-  };
+  }
 
   const handleDeleteVisit = async () => {
-    if (!visitToDelete) return;
-    setIsDeleting(true);
+    if (!visitToDelete) return
+    setIsDeleting(true)
     try {
-      if (!token) throw new Error("No authentication token found");
+      if (!token) throw new Error("No authentication token found")
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitToDelete}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitToDelete}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-      if (!response.ok) throw new Error("Failed to delete visit");
+      if (!response.ok) throw new Error("Failed to delete visit")
 
-      // Optimistically update the UI
-      setVisits((prev) => prev.filter((visit) => visit.id !== visitToDelete));
-      toast.success("Visit deleted successfully");
+      // Refresh data using the reusable function
+      await refreshVisitData()
+
+      toast.success("Visit deleted successfully")
     } catch (error) {
-      console.error("Error deleting visit:", error);
-      toast.error("Failed to delete visit");
+      console.error("Error deleting visit:", error)
+      toast.error("Failed to delete visit")
     } finally {
-      setIsDeleteConfirmOpen(false);
-      setVisitToDelete(null);
-      setIsDeleting(false);
+      setIsDeleteConfirmOpen(false)
+      setVisitToDelete(null)
+      setIsDeleting(false)
     }
-  };
+  }
 
   const handleAssignStaff = async () => {
     if (!currentVisit || !assignStaffForm.staffId) {
-      toast.error("Please select a staff member");
-      return;
+      toast.error("Please select a staff member")
+      return
     }
 
-    setIsAssigning(true);
+    setIsAssigning(true)
     try {
-      if (!token) throw new Error("No authentication token found");
+      if (!token) throw new Error("No authentication token found")
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            staff: assignStaffForm.staffId,
-            notes: assignStaffForm.notes,
-          }),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit/${currentVisit.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          staff: assignStaffForm.staffId,
+          notes: assignStaffForm.notes,
+        }),
+      })
 
-      if (!response.ok) throw new Error("Failed to assign staff");
+      if (!response.ok) throw new Error("Failed to assign staff")
 
-      // const updatedVisit = await response.json();
-      const staffName = staffList.find(s => s._id === assignStaffForm.staffId)?.fullname || "Staff not assigned";
+      // Refresh data using the reusable function
+      await refreshVisitData()
 
-      // Update the visit in state
-      setVisits((prev) =>
-        prev.map((visit) =>
-          visit.id === currentVisit.id
-            ? { ...visit, staffName, notes: assignStaffForm.notes }
-            : visit
-        )
-      );
-
-      toast.success("Staff assigned successfully");
-      setIsAssignStaffOpen(false);
-      setCurrentVisit(null);
-      setAssignStaffForm({ staffId: "", notes: "" });
+      toast.success("Staff assigned successfully")
+      setIsAssignStaffOpen(false)
+      setCurrentVisit(null)
+      setAssignStaffForm({ staffId: "", notes: "" })
     } catch (error) {
-      console.error("Error assigning staff:", error);
-      toast.error("Failed to assign staff");
+      console.error("Error assigning staff:", error)
+      toast.error("Failed to assign staff")
     } finally {
-      setIsAssigning(false);
+      setIsAssigning(false)
     }
-  };
+  }
 
   const handleOpenStatusModal = (visit: Visit) => {
-    setCurrentVisit(visit);
+    setCurrentVisit(visit)
     setStatusForm({
       status: visit.status,
       notes: "",
-    });
-    setIsStatusModalOpen(true);
-  };
+    })
+    setIsStatusModalOpen(true)
+  }
 
   const handleOpenAssignStaffModal = (visit: Visit) => {
-    setCurrentVisit(visit);
+    setCurrentVisit(visit)
     setAssignStaffForm({
       staffId: staffList.find((s) => s.fullname === visit.staffName)?._id || "",
       notes: visit.notes || "",
-    });
-    setIsAssignStaffOpen(true);
-  };
+    })
+    setIsAssignStaffOpen(true)
+  }
 
   const handleStatusChange = async () => {
     if (!statusForm.status) {
-      toast.error("Please select a status");
-      return;
+      toast.error("Please select a status")
+      return
     }
 
-    if (!currentVisit) return;
-    setIsSubmitting(true);
+    if (!currentVisit) return
+    setIsSubmitting(true)
     try {
-      if (!token) throw new Error("No authentication token found");
+      if (!token) throw new Error("No authentication token found")
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${currentVisit.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(statusForm),
-        }
-      );
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/update-visit-status/${currentVisit.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(statusForm),
+      })
 
-      if (!response.ok) throw new Error("Failed to update status");
+      if (!response.ok) throw new Error("Failed to update status")
 
-      // Update the visit in state
-      setVisits((prev) =>
-        prev.map((visit) =>
-          visit.id === currentVisit.id
-            ? { ...visit, status: statusForm.status }
-            : visit
-        )
-      );
+      // Refresh data using the reusable function
+      await refreshVisitData()
 
-      toast.success("Status updated successfully");
-      setIsStatusModalOpen(false);
-      setStatusForm({ status: "", notes: "" });
-      setCurrentVisit(null);
+      toast.success("Status updated successfully")
+      setIsStatusModalOpen(false)
+      setStatusForm({ status: "", notes: "" })
+      setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating status:", error);
-      toast.error("Failed to update status. Please try again.");
+      console.error("Error updating status:", error)
+      toast.error("Failed to update status. Please try again.")
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   const getStatusClass = (status: string) => {
     switch (status) {
       case "confirmed":
-        return "bg-blue-100 text-blue-800";
+        return "bg-blue-100 text-blue-800"
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800"
       case "completed":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800"
       case "cancelled":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800"
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800"
     }
-  };
+  }
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
+      setPage(newPage)
     }
-  };
+  }
+
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    const items = []
+    // const maxVisiblePages = 5
+
+    // Always show first page
+    items.push(
+      <PaginationItem key="page-1">
+        <PaginationLink
+          isActive={page === 1}
+          onClick={() => handlePageChange(1)}
+          className={page === 1 ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>,
+    )
+
+    // Show ellipsis if needed
+    if (page > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Show pages around current page
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+      if (i <= 1 || i >= totalPages) continue // Skip first and last page as they're handled separately
+
+      items.push(
+        <PaginationItem key={`page-${i}`}>
+          <PaginationLink
+            isActive={page === i}
+            onClick={() => handlePageChange(i)}
+            className={page === i ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    // Show ellipsis if needed
+    if (page < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Always show last page if there's more than one page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key={`page-${totalPages}`}>
+          <PaginationLink
+            isActive={page === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+            className={page === totalPages ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    return items
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -632,10 +676,7 @@ export function VisitPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={() => setIsAddVisitOpen(true)}
-              className="bg-[#0a1172] hover:bg-[#1a2182]"
-            >
+            <Button onClick={() => setIsAddVisitOpen(true)} className="bg-[#0a1172] hover:bg-[#1a2182]">
               + Add Visit
             </Button>
           </div>
@@ -656,12 +697,19 @@ export function VisitPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVisits.length > 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                        <span>Loading visits...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredVisits.length > 0 ? (
                   filteredVisits.map((visit) => (
                     <TableRow key={visit.id}>
-                      <TableCell className="font-medium">
-                        {String(visit.id).slice(-4)}
-                      </TableCell>
+                      <TableCell className="font-medium">{String(visit.id).slice(-4)}</TableCell>
                       <TableCell>{visit.clientName}</TableCell>
                       <TableCell>{visit.staffName}</TableCell>
                       <TableCell>
@@ -675,29 +723,17 @@ export function VisitPage() {
                       </TableCell>
                       <TableCell>{visit.type}</TableCell>
                       <TableCell>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${getStatusClass(
-                            visit.status
-                          )}`}
-                        >
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusClass(visit.status)}`}>
                           {visit.status}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenStatusModal(visit)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenStatusModal(visit)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenAssignStaffModal(visit)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenAssignStaffModal(visit)}>
                           <UserPlus className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -707,8 +743,8 @@ export function VisitPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setCurrentVisit(visit);
-                              setIsViewVisitOpen(true);
+                              setCurrentVisit(visit)
+                              setIsViewVisitOpen(true)
                             }}
                           >
                             <Eye className="h-4 w-4" />
@@ -717,8 +753,8 @@ export function VisitPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setCurrentVisit(visit);
-                              setIsEditVisitOpen(true);
+                              setCurrentVisit(visit)
+                              setIsEditVisitOpen(true)
                             }}
                           >
                             <Pencil className="h-4 w-4" />
@@ -727,8 +763,8 @@ export function VisitPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setVisitToDelete(visit.id);
-                              setIsDeleteConfirmOpen(true);
+                              setVisitToDelete(visit.id)
+                              setIsDeleteConfirmOpen(true)
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -748,52 +784,33 @@ export function VisitPage() {
             </Table>
           </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 text-sm">
-              <div>
-                Showing {(page - 1) * pageSize + 1} to{" "}
-                {Math.min(page * pageSize, totalPages * pageSize)} of{" "}
-                {totalPages * pageSize} results
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  disabled={page === 1}
-                  onClick={() => handlePageChange(page - 1)}
-                >
-                  <span className="sr-only">Previous page</span>
-                  &lt;
-                </Button>
-                {Array.from(
-                  { length: totalPages },
-                  (_, index) => index + 1
-                ).map((pageNumber) => (
-                  <Button
-                    key={pageNumber}
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 w-8 p-0 ${
-                      page === pageNumber ? "bg-yellow-100" : ""
-                    }`}
-                    onClick={() => handlePageChange(pageNumber)}
-                  >
-                    {pageNumber}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  disabled={page === totalPages}
-                  onClick={() => handlePageChange(page + 1)}
-                >
-                  <span className="sr-only">Next page</span>
-                  &gt;
-                </Button>
-              </div>
+          {/* Shadcn Pagination Component */}
+          <div className="mt-4">
+            <div className="text-sm text-muted-foreground mb-2">
+              Showing page {page} of {totalPages}
             </div>
-          )}
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(page - 1)}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    aria-disabled={page <= 1}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(page + 1)}
+                    className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    aria-disabled={page >= totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         </div>
       </div>
 
@@ -820,17 +837,13 @@ export function VisitPage() {
                   setAddFormData({
                     ...addFormData,
                     clientEmail: e.target.value,
-                  });
-                  clearFormError("clientEmail");
+                  })
+                  clearFormError("clientEmail")
                 }}
                 placeholder="Enter client email"
                 className={formErrors.clientEmail ? "border-red-500" : ""}
               />
-              {formErrors.clientEmail && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.clientEmail}
-                </span>
-              )}
+              {formErrors.clientEmail && <span className="text-red-500 text-xs">{formErrors.clientEmail}</span>}
             </div>
             <div className="grid gap-2">
               <label htmlFor="staff" className="text-sm font-medium">
@@ -839,13 +852,11 @@ export function VisitPage() {
               <Select
                 value={addFormData.staff}
                 onValueChange={(value) => {
-                  setAddFormData({ ...addFormData, staff: value });
-                  clearFormError("staff");
+                  setAddFormData({ ...addFormData, staff: value })
+                  clearFormError("staff")
                 }}
               >
-                <SelectTrigger
-                  className={formErrors.staff ? "border-red-500" : ""}
-                >
+                <SelectTrigger className={formErrors.staff ? "border-red-500" : ""}>
                   <SelectValue placeholder="Select Staff" />
                 </SelectTrigger>
                 <SelectContent>
@@ -856,9 +867,7 @@ export function VisitPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {formErrors.staff && (
-                <span className="text-red-500 text-xs">{formErrors.staff}</span>
-              )}
+              {formErrors.staff && <span className="text-red-500 text-xs">{formErrors.staff}</span>}
             </div>
             <div className="grid gap-2">
               <label htmlFor="address" className="text-sm font-medium">
@@ -868,17 +877,13 @@ export function VisitPage() {
                 id="address"
                 value={addFormData.address}
                 onChange={(e) => {
-                  setAddFormData({ ...addFormData, address: e.target.value });
-                  clearFormError("address");
+                  setAddFormData({ ...addFormData, address: e.target.value })
+                  clearFormError("address")
                 }}
                 placeholder="Enter address"
                 className={formErrors.address ? "border-red-500" : ""}
               />
-              {formErrors.address && (
-                <span className="text-red-500 text-xs">
-                  {formErrors.address}
-                </span>
-              )}
+              {formErrors.address && <span className="text-red-500 text-xs">{formErrors.address}</span>}
             </div>
             <div className="grid gap-2">
               <label htmlFor="date" className="text-sm font-medium">
@@ -889,14 +894,12 @@ export function VisitPage() {
                 type="date"
                 value={addFormData.date}
                 onChange={(e) => {
-                  setAddFormData({ ...addFormData, date: e.target.value });
-                  clearFormError("date");
+                  setAddFormData({ ...addFormData, date: e.target.value })
+                  clearFormError("date")
                 }}
                 className={formErrors.date ? "border-red-500" : ""}
               />
-              {formErrors.date && (
-                <span className="text-red-500 text-xs">{formErrors.date}</span>
-              )}
+              {formErrors.date && <span className="text-red-500 text-xs">{formErrors.date}</span>}
             </div>
             <div className="grid gap-2">
               <label htmlFor="time" className="text-sm font-medium">
@@ -907,14 +910,12 @@ export function VisitPage() {
                 type="time"
                 value={addFormData.time}
                 onChange={(e) => {
-                  setAddFormData({ ...addFormData, time: e.target.value });
-                  clearFormError("time");
+                  setAddFormData({ ...addFormData, time: e.target.value })
+                  clearFormError("time")
                 }}
                 className={formErrors.time ? "border-red-500" : ""}
               />
-              {formErrors.time && (
-                <span className="text-red-500 text-xs">{formErrors.time}</span>
-              )}
+              {formErrors.time && <span className="text-red-500 text-xs">{formErrors.time}</span>}
             </div>
             <div className="grid gap-2">
               <label htmlFor="visitType" className="text-sm font-medium">
@@ -923,13 +924,11 @@ export function VisitPage() {
               <Select
                 value={addFormData.type}
                 onValueChange={(value) => {
-                  setAddFormData({ ...addFormData, type: value });
-                  clearFormError("type");
+                  setAddFormData({ ...addFormData, type: value })
+                  clearFormError("type")
                 }}
               >
-                <SelectTrigger
-                  className={formErrors.type ? "border-red-500" : ""}
-                >
+                <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
                   <SelectValue placeholder="Select Visit Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -938,9 +937,7 @@ export function VisitPage() {
                   <SelectItem value="follow up">Follow Up</SelectItem>
                 </SelectContent>
               </Select>
-              {formErrors.type && (
-                <span className="text-red-500 text-xs">{formErrors.type}</span>
-              )}
+              {formErrors.type && <span className="text-red-500 text-xs">{formErrors.type}</span>}
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
@@ -987,9 +984,7 @@ export function VisitPage() {
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Email:</span>
-                <span className="text-sm">
-                  {currentVisit.clientEmail || "N/A"}
-                </span>
+                <span className="text-sm">{currentVisit.clientEmail || "N/A"}</span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Date & Time:</span>
@@ -1018,18 +1013,14 @@ export function VisitPage() {
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Status:</span>
                 <span
-                  className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass(
-                    currentVisit.status
-                  )}`}
+                  className={`text-sm px-2 py-1 rounded-full inline-block w-fit ${getStatusClass(currentVisit.status)}`}
                 >
                   {currentVisit.status}
                 </span>
               </div>
               <div className="grid grid-cols-[100px_1fr] gap-2">
                 <span className="text-sm font-medium">Notes:</span>
-                <span className="text-sm">
-                  {currentVisit.notes || "No notes available"}
-                </span>
+                <span className="text-sm">{currentVisit.notes || "No notes available"}</span>
               </div>
             </div>
           )}
@@ -1057,10 +1048,7 @@ export function VisitPage() {
           {currentVisit && (
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label
-                  htmlFor="edit-clientEmail"
-                  className="text-sm font-medium"
-                >
+                <label htmlFor="edit-clientEmail" className="text-sm font-medium">
                   Client Email
                 </label>
                 <Input
@@ -1070,17 +1058,13 @@ export function VisitPage() {
                     setEditFormData({
                       ...editFormData,
                       clientEmail: e.target.value,
-                    });
-                    clearFormError("clientEmail");
+                    })
+                    clearFormError("clientEmail")
                   }}
                   placeholder="Enter client email"
                   className={formErrors.clientEmail ? "border-red-500" : ""}
                 />
-                {formErrors.clientEmail && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.clientEmail}
-                  </span>
-                )}
+                {formErrors.clientEmail && <span className="text-red-500 text-xs">{formErrors.clientEmail}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-staff" className="text-sm font-medium">
@@ -1089,13 +1073,11 @@ export function VisitPage() {
                 <Select
                   value={editFormData.staff}
                   onValueChange={(value) => {
-                    setEditFormData({ ...editFormData, staff: value });
-                    clearFormError("staff");
+                    setEditFormData({ ...editFormData, staff: value })
+                    clearFormError("staff")
                   }}
                 >
-                  <SelectTrigger
-                    className={formErrors.staff ? "border-red-500" : ""}
-                  >
+                  <SelectTrigger className={formErrors.staff ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select Staff" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1106,11 +1088,7 @@ export function VisitPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {formErrors.staff && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.staff}
-                  </span>
-                )}
+                {formErrors.staff && <span className="text-red-500 text-xs">{formErrors.staff}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-address" className="text-sm font-medium">
@@ -1123,17 +1101,13 @@ export function VisitPage() {
                     setEditFormData({
                       ...editFormData,
                       address: e.target.value,
-                    });
-                    clearFormError("address");
+                    })
+                    clearFormError("address")
                   }}
                   placeholder="Enter address"
                   className={formErrors.address ? "border-red-500" : ""}
                 />
-                {formErrors.address && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.address}
-                  </span>
-                )}
+                {formErrors.address && <span className="text-red-500 text-xs">{formErrors.address}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-date" className="text-sm font-medium">
@@ -1144,16 +1118,12 @@ export function VisitPage() {
                   type="date"
                   value={editFormData.date}
                   onChange={(e) => {
-                    setEditFormData({ ...editFormData, date: e.target.value });
-                    clearFormError("date");
+                    setEditFormData({ ...editFormData, date: e.target.value })
+                    clearFormError("date")
                   }}
                   className={formErrors.date ? "border-red-500" : ""}
                 />
-                {formErrors.date && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.date}
-                  </span>
-                )}
+                {formErrors.date && <span className="text-red-500 text-xs">{formErrors.date}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-time" className="text-sm font-medium">
@@ -1164,16 +1134,12 @@ export function VisitPage() {
                   type="time"
                   value={editFormData.time}
                   onChange={(e) => {
-                    setEditFormData({ ...editFormData, time: e.target.value });
-                    clearFormError("time");
+                    setEditFormData({ ...editFormData, time: e.target.value })
+                    clearFormError("time")
                   }}
                   className={formErrors.time ? "border-red-500" : ""}
                 />
-                {formErrors.time && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.time}
-                  </span>
-                )}
+                {formErrors.time && <span className="text-red-500 text-xs">{formErrors.time}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-visitType" className="text-sm font-medium">
@@ -1182,13 +1148,11 @@ export function VisitPage() {
                 <Select
                   value={editFormData.type}
                   onValueChange={(value) => {
-                    setEditFormData({ ...editFormData, type: value });
-                    clearFormError("type");
+                    setEditFormData({ ...editFormData, type: value })
+                    clearFormError("type")
                   }}
                 >
-                  <SelectTrigger
-                    className={formErrors.type ? "border-red-500" : ""}
-                  >
+                  <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select Visit Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1197,11 +1161,7 @@ export function VisitPage() {
                     <SelectItem value="follow up">Follow Up</SelectItem>
                   </SelectContent>
                 </Select>
-                {formErrors.type && (
-                  <span className="text-red-500 text-xs">
-                    {formErrors.type}
-                  </span>
-                )}
+                {formErrors.type && <span className="text-red-500 text-xs">{formErrors.type}</span>}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="edit-notes" className="text-sm font-medium">
@@ -1210,9 +1170,7 @@ export function VisitPage() {
                 <Input
                   id="edit-notes"
                   value={editFormData.notes}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, notes: e.target.value })
-                  }
+                  onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
                   placeholder="Add notes..."
                 />
               </div>
@@ -1220,11 +1178,7 @@ export function VisitPage() {
           )}
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCurrentVisit(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setCurrentVisit(null)}>
                 Cancel
               </Button>
             </DialogClose>
@@ -1259,18 +1213,11 @@ export function VisitPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm">
-              Are you sure you want to delete this visit? This action cannot be
-              undone.
-            </p>
+            <p className="text-sm">Are you sure you want to delete this visit? This action cannot be undone.</p>
           </div>
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setVisitToDelete(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setVisitToDelete(null)}>
                 Cancel
               </Button>
             </DialogClose>
@@ -1306,9 +1253,7 @@ export function VisitPage() {
               </label>
               <Select
                 value={statusForm.status}
-                onValueChange={(value) =>
-                  setStatusForm({ ...statusForm, status: value })
-                }
+                onValueChange={(value) => setStatusForm({ ...statusForm, status: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -1326,20 +1271,14 @@ export function VisitPage() {
               <Input
                 id="notes"
                 value={statusForm.notes}
-                onChange={(e) =>
-                  setStatusForm({ ...statusForm, notes: e.target.value })
-                }
+                onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
                 placeholder="Add notes"
               />
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCurrentVisit(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setCurrentVisit(null)}>
                 Cancel
               </Button>
             </DialogClose>
@@ -1380,9 +1319,7 @@ export function VisitPage() {
               </label>
               <Select
                 value={assignStaffForm.staffId}
-                onValueChange={(value) =>
-                  setAssignStaffForm({ ...assignStaffForm, staffId: value })
-                }
+                onValueChange={(value) => setAssignStaffForm({ ...assignStaffForm, staffId: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Staff" />
@@ -1415,11 +1352,7 @@ export function VisitPage() {
           </div>
           <DialogFooter className="sm:justify-between">
             <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCurrentVisit(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setCurrentVisit(null)}>
                 Cancel
               </Button>
             </DialogClose>
@@ -1442,5 +1375,5 @@ export function VisitPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }
