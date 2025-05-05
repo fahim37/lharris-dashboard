@@ -58,9 +58,7 @@ export function LoginForm() {
 
       if (response?.error) {
         toast.error(response?.error);
-        alert(response?.error);
       } else {
-        alert("Login Successfully");
         toast.success("Login successful");
         router.push("/");
         router.refresh();

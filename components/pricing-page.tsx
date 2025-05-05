@@ -1,69 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Check, Plus, Pencil, Trash, Eye, Download } from "lucide-react";
-import {
-  getActivePlans,
-  getMonthlyRevenue,
-  getActiveDiscounts,
-  addPlan,
-  getAllPlans,
-  deletePlan,
-  updatePlan,
-} from "@/lib/api";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import { useSession } from "next-auth/react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table";
-import { cn } from "@/lib/utils";
-import PaginationComponent from "./pagination";
-import { PaymentDetailsModal } from "./payment-details-modal";
-import { generatePaymentPDF } from "@/lib/generate-pdf";
-import QuillEditor from "./QuillEditor";
+import { useState, useEffect } from "react"
+import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { toast } from "sonner"
+import { Check, Plus, Pencil, Trash, Eye, Download } from "lucide-react"
+import { getActivePlans, getMonthlyRevenue, getActiveDiscounts, addPlan, getAllPlans, deletePlan, updatePlan, setAuthToken } from "@/lib/api"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { useSession } from "next-auth/react"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
+import { cn } from "@/lib/utils"
+import PaginationComponent from "./pagination"
+import { PaymentDetailsModal } from "./payment-details-modal"
+import { generatePaymentPDF } from "@/lib/generate-pdf"
+import QuillEditor from "./QuillEditor"
 
 interface Plan {
   _id: string;
@@ -131,11 +89,25 @@ export function PricingPage() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [activeTab, setActiveTab] = useState("plans");
 
+
+
+  const { data: session } = useSession();
+  const token = session?.accessToken as string | undefined;
+
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token); // Set the token when it becomes available
+    }
+  }, [token]);
+
+
+
+
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleViewPaymentDetails = (payment: any) => {
-    setSelectedPayment(payment);
-    setIsModalOpen(true);
-  };
+    setSelectedPayment(payment)
+    setIsModalOpen(true)
+  }
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleDownloadPaymentDetails = (payment: any) => {
     try {
@@ -209,9 +181,11 @@ export function PricingPage() {
         console.error("Error fetching billing metrics:", error);
         toast.error("Failed to load billing metrics");
       }
-    };
-    fetchMetrics();
-  }, []);
+    }
+    if (token) {
+      fetchMetrics();
+    }
+  }, [token])
 
   const handleAddPackage = async (data: FormData) => {
     try {
@@ -283,23 +257,19 @@ export function PricingPage() {
     setIsEditPackageOpen(true);
   };
 
-  const session = useSession();
 
   const getPayments = async () => {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/payments/all?page=${page}&limit=${limit}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.data?.accessToken}`,
-        },
       }
     );
 
     const data = await res.json();
     return setPayments(data);
-  };
+  }
+
 
   useEffect(() => {
     getPayments();

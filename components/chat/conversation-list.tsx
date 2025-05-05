@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import type { Conversation } from "@/types/chat";
 import { useSession } from "next-auth/react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 
 interface ConversationListProps {
@@ -18,7 +16,7 @@ export function ConversationList({
 }: ConversationListProps) {
   const { data: session } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -59,7 +57,7 @@ export function ConversationList({
 
   return (
     <div className="flex flex-col h-full border-r">
-      <div className="p-4 border-b">
+      {/* <div className="p-4 border-b">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -69,7 +67,7 @@ export function ConversationList({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
 
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -98,13 +96,13 @@ export function ConversationList({
               >
                 <div className="flex items-center gap-3">
                   <AvatarWithStatus
-                    name={conversation.client?.name || "Unknown"}
+                    name={conversation.client?.email}
                     status="online"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
                       <h3 className="font-medium truncate">
-                        {conversation.client?.name || "Unknown"}
+                        {conversation.client?.email}
                       </h3>
                       {lastMessage?.createdAt && (
                         <span className="text-xs text-gray-500">

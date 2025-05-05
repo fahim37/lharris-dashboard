@@ -11,7 +11,6 @@ interface AvatarWithStatusProps {
 export function AvatarWithStatus({
   src,
   name,
-  status = "offline",
   size = "md",
 }: AvatarWithStatusProps) {
   // Safe handling of name with fallback
@@ -32,11 +31,11 @@ export function AvatarWithStatus({
     lg: "h-12 w-12",
   };
 
-  const statusSizeClasses = {
-    sm: "h-2 w-2",
-    md: "h-3 w-3",
-    lg: "h-3.5 w-3.5",
-  };
+  // const statusSizeClasses = {
+  //   sm: "h-2 w-2",
+  //   md: "h-3 w-3",
+  //   lg: "h-3.5 w-3.5",
+  // };
 
   return (
     <div className="relative">
@@ -46,7 +45,7 @@ export function AvatarWithStatus({
           {initials}
         </AvatarFallback>
       </Avatar>
-      {status && (
+      {/* {status && (
         <span
           className={cn(
             "absolute bottom-0 right-0 block rounded-full ring-2 ring-white",
@@ -54,7 +53,7 @@ export function AvatarWithStatus({
             status === "online" ? "bg-green-500" : "bg-gray-300"
           )}
         />
-      )}
+      )} */}
     </div>
   );
 }
