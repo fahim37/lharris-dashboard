@@ -9,8 +9,8 @@ import {
   ImageIcon,
   BarChart,
   DollarSign,
-  ClipboardList,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -25,7 +25,7 @@ export function AppSidebar() {
     { path: "/media", label: "Media", icon: ImageIcon },
     { path: "/reports", label: "Reports", icon: BarChart },
     { path: "/pricing", label: "Pricing", icon: DollarSign },
-    { path: "/audit-logs", label: "Audit Logs", icon: ClipboardList },
+    { path: "/chat", label: "Messages", icon: MessageCircle },
   ];
 
   const handleNavigation = (path: string) => {
@@ -33,7 +33,7 @@ export function AppSidebar() {
   };
 
   return (
-    <div className="sidebar h-screen w-[200px] flex flex-col">
+    <div className="sidebar h-screen w-[200px] flex flex-col z-50">
       <div className="royal-logo">
         <div className="w-20 h-20 relative">
           <Image
@@ -51,7 +51,7 @@ export function AppSidebar() {
           <div
             key={item.path}
             className={`sidebar-item ${pathname === item.path ? "active" : ""}`}
-            onClick={() => handleNavigation(item.path)}
+            onClick={() => item.path && handleNavigation(item.path)}
           >
             <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
