@@ -1,8 +1,8 @@
-
+"use client";
 import { VisitPage } from "@/components/visit-page";
 import React from "react";
 
-const page = () => {
+const Page = () => {
   return (
     <div>
       <VisitPage />
@@ -10,4 +10,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
