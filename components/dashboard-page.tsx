@@ -58,6 +58,7 @@ import html2canvas from "html2canvas";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { PageHeader } from "./page-header";
+import { setAuthToken } from "@/lib/api";
 
 // Define types for our metrics data
 interface MetricsData {
@@ -402,9 +403,15 @@ export default function DashboardPage() {
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([]);
   const [isRevenueLoading, setIsRevenueLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  const session = useSession();
-  const token = session?.data?.accessToken;
-  console.log("token", token);
+
+  const { data: session } = useSession();
+  const token = session?.accessToken as string | undefined;
+
+  useEffect(() => {
+    if (token) {
+      setAuthToken(token); // Set the token when it becomes available
+    }
+  }, [token]);
 
 
   // Fetch metrics data from API
@@ -445,8 +452,9 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
-    fetchMetrics();
+    if (token) {
+      fetchMetrics();
+    }
   }, [token]);
 
   const [recentData, setRecentData] = useState<RecentActivityResponse | null>(
@@ -1118,25 +1126,22 @@ export default function DashboardPage() {
           <TabsList className="">
             <TabsTrigger
               value="overview"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "overview" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "overview" ? "bg-[#091057] text-white" : ""
+                }`}
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="users"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "users" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "users" ? "bg-[#091057] text-white" : ""
+                }`}
             >
               User Management
             </TabsTrigger>
             <TabsTrigger
               value="visits"
-              className={`rounded-full px-6 py-2 ${
-                activeTab === "visits" ? "bg-[#091057] text-white" : ""
-              }`}
+              className={`rounded-full px-6 py-2 ${activeTab === "visits" ? "bg-[#091057] text-white" : ""
+                }`}
             >
               Visits
             </TabsTrigger>
@@ -1211,9 +1216,8 @@ export default function DashboardPage() {
                           chartTimeframe === "12months" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "12months" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""
+                          }`}
                         onClick={() => setChartTimeframe("12months")}
                       >
                         12 Months
@@ -1223,9 +1227,8 @@ export default function DashboardPage() {
                           chartTimeframe === "30days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "30days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""
+                          }`}
                         onClick={() => setChartTimeframe("30days")}
                       >
                         30 Days
@@ -1235,9 +1238,8 @@ export default function DashboardPage() {
                           chartTimeframe === "7days" ? "default" : "outline"
                         }
                         size="sm"
-                        className={`rounded-full text-xs ${
-                          chartTimeframe === "7days" ? "bg-blue-950" : ""
-                        }`}
+                        className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""
+                          }`}
                         onClick={() => setChartTimeframe("7days")}
                       >
                         7 Days
@@ -1265,10 +1267,10 @@ export default function DashboardPage() {
                         {isRevenueLoading
                           ? "Loading..."
                           : revenueData.length > 0
-                          ? `$${revenueData[
+                            ? `$${revenueData[
                               revenueData.length - 1
                             ]?.revenue.toLocaleString()}`
-                          : "$0"}
+                            : "$0"}
                       </div>
                     </div>
                     <div className="h-64">
@@ -1429,8 +1431,8 @@ export default function DashboardPage() {
                               day.day === 13 || day.day === 21
                                 ? "text-red-500"
                                 : day.day === 30
-                                ? "text-yellow-500"
-                                : ""
+                                  ? "text-yellow-500"
+                                  : ""
                             }
                           >
                             {day.day}
@@ -1683,9 +1685,8 @@ export default function DashboardPage() {
                       key={page}
                       variant="outline"
                       size="sm"
-                      className={`h-8 w-8 p-0 ${
-                        currentUserPage === page ? "bg-yellow-100" : ""
-                      }`}
+                      className={`h-8 w-8 p-0 ${currentUserPage === page ? "bg-yellow-100" : ""
+                        }`}
                       onClick={() => handleUserPageChange(page)}
                     >
                       {page}
@@ -1915,9 +1916,8 @@ export default function DashboardPage() {
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${
-                      currentVisitPage === page ? "bg-yellow-100" : ""
-                    }`}
+                    className={`h-8 w-8 p-0 ${currentVisitPage === page ? "bg-yellow-100" : ""
+                      }`}
                     onClick={() => handleVisitPageChange(page)}
                   >
                     {page}
