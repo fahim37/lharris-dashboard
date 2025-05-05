@@ -203,12 +203,14 @@ export function ReportsPage() {
     if (status === "authenticated" && session?.accessToken) {
       fetchRevenueData(getTimeRangeParam(chartTimeframe));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartTimeframe, status, session]);
 
   useEffect(() => {
     if (status === "authenticated" && session?.accessToken) {
       fetchVisits(currentPage);
     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, status, session]);
 
   const exportToPDF = async () => {
@@ -231,23 +233,30 @@ export function ReportsPage() {
     }
   };
 
-  const filteredVisits = visitsData?.data.filter((visit) => {
-    const matchesSearch =
-      visit.client.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (visit.staff?.fullname &&
-        visit.staff.fullname.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      visit._id.includes(searchTerm) ||
-      visit.address.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStaff =
-      selectedStaff === "all" ||
-      (visit.staff?.fullname && visit.staff.fullname === selectedStaff);
-    const matchesClient =
-      selectedClient === "all" || visit.client.fullname === selectedClient;
-    const matchesReportType =
-      selectedReportType === "all" || visit.type === selectedReportType;
+  const filteredVisits =
+    visitsData?.data.filter((visit) => {
+      const matchesSearch =
+        visit.client.fullname
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (visit.staff?.fullname &&
+          visit.staff.fullname
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())) ||
+        visit._id.includes(searchTerm) ||
+        visit.address.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStaff =
+        selectedStaff === "all" ||
+        (visit.staff?.fullname && visit.staff.fullname === selectedStaff);
+      const matchesClient =
+        selectedClient === "all" || visit.client.fullname === selectedClient;
+      const matchesReportType =
+        selectedReportType === "all" || visit.type === selectedReportType;
 
-    return matchesSearch && matchesStaff && matchesClient && matchesReportType;
-  }) || [];
+      return (
+        matchesSearch && matchesStaff && matchesClient && matchesReportType
+      );
+    }) || [];
 
   const uniqueClients = Array.from(
     new Set(visitsData?.data.map((visit) => visit.client.fullname))
@@ -349,21 +358,27 @@ export function ReportsPage() {
             <div className="flex space-x-2">
               <Button
                 variant={chartTimeframe === "12months" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "12months" ? "bg-blue-950" : ""}`}
+                className={`rounded-full text-xs ${
+                  chartTimeframe === "12months" ? "bg-blue-950" : ""
+                }`}
                 onClick={() => setChartTimeframe("12months")}
               >
                 12 Months
               </Button>
               <Button
                 variant={chartTimeframe === "30days" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "30days" ? "bg-blue-950" : ""}`}
+                className={`rounded-full text-xs ${
+                  chartTimeframe === "30days" ? "bg-blue-950" : ""
+                }`}
                 onClick={() => setChartTimeframe("30days")}
               >
                 30 Days
               </Button>
               <Button
                 variant={chartTimeframe === "7days" ? "default" : "outline"}
-                className={`rounded-full text-xs ${chartTimeframe === "7days" ? "bg-blue-950" : ""}`}
+                className={`rounded-full text-xs ${
+                  chartTimeframe === "7days" ? "bg-blue-950" : ""
+                }`}
                 onClick={() => setChartTimeframe("7days")}
               >
                 7 Days
@@ -388,10 +403,13 @@ export function ReportsPage() {
                     {isRevenueLoading
                       ? "Loading..."
                       : revenueData.length > 0
-                        ? `$${revenueData[revenueData.length - 1].revenue.toLocaleString()}`
-                        : "$0"}
+                      ? `$${revenueData[
+                          revenueData.length - 1
+                        ].revenue.toLocaleString()}`
+                      : "$0"}
                   </div>
-                  =                </div>
+                  ={" "}
+                </div>
                 <div className="h-[300px]">
                   {isRevenueLoading ? (
                     <div className="h-full flex items-center justify-center">
@@ -415,10 +433,15 @@ export function ReportsPage() {
                         <YAxis
                           axisLine={false}
                           tickLine={false}
-                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                          tickFormatter={(value) =>
+                            `$${value.toLocaleString()}`
+                          }
                         />
                         <Tooltip
-                          formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]}
+                          formatter={(value) => [
+                            `$${Number(value).toLocaleString()}`,
+                            "Revenue",
+                          ]}
                           labelFormatter={(label) => {
                             const date = new Date(label);
                             return `${date.toLocaleString("default", {
@@ -481,13 +504,15 @@ export function ReportsPage() {
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-orange-400 rounded-full mr-2"></div>
                     <div className="text-sm">
-                      Video Surveillance <span className="font-semibold">15%</span>
+                      Video Surveillance{" "}
+                      <span className="font-semibold">15%</span>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
                     <div className="text-sm">
-                      Environmental Sensors <span className="font-semibold">20%</span>
+                      Environmental Sensors{" "}
+                      <span className="font-semibold">20%</span>
                     </div>
                   </div>
                 </div>
@@ -584,12 +609,18 @@ export function ReportsPage() {
                       <TableCell>{formatDate(visit.date)}</TableCell>
                       <TableCell>{extractTime(visit.date)}</TableCell>
                       <TableCell>{visit.client.fullname}</TableCell>
-                      <TableCell>{visit.staff?.fullname || "Not Assigned"}</TableCell>
+                      <TableCell>
+                        {visit.staff?.fullname || "Not Assigned"}
+                      </TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${getIssueClass(visit.issues)}`}
+                          className={`px-2 py-1 rounded-full text-xs ${getIssueClass(
+                            visit.issues
+                          )}`}
                         >
-                          {visit.issues.length === 0 ? "No Issue" : "Issue Found"}
+                          {visit.issues.length === 0
+                            ? "No Issue"
+                            : "Issue Found"}
                         </span>
                       </TableCell>
                       <TableCell>{visit.type || "N/A"}</TableCell>
@@ -620,7 +651,8 @@ export function ReportsPage() {
           {visitsData && (
             <div className="flex items-center justify-between mt-4 text-sm">
               <div>
-                Showing {(currentPage - 1) * visitsData.meta.itemsPerPage + 1} to{" "}
+                Showing {(currentPage - 1) * visitsData.meta.itemsPerPage + 1}{" "}
+                to{" "}
                 {Math.min(
                   currentPage * visitsData.meta.itemsPerPage,
                   visitsData.meta.totalItems
@@ -645,7 +677,9 @@ export function ReportsPage() {
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""}`}
+                    className={`h-8 w-8 p-0 ${
+                      currentPage === page ? "bg-yellow-100" : ""
+                    }`}
                     onClick={() => handlePageChange(page)}
                   >
                     {page}
@@ -671,7 +705,8 @@ export function ReportsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Visit Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this visit? This action cannot be undone.
+              Are you sure you want to delete this visit? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex space-x-2 justify-end">

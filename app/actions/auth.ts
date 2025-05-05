@@ -49,15 +49,19 @@ export async function loginUser(credentials: {
   password: string;
 }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/users/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      }
+    );
 
     const data = await response.json();
+    console.log(data, "login data");
 
     if (!response.ok) {
       return {
