@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/page-header";
 
 interface Visit {
   _id: string;
@@ -145,8 +146,9 @@ export default function MediaPage() {
   };
 
   return (
-    <div className="space-y-4 px-20 mt-16">
-      <div className="">
+    <div className="">
+      <PageHeader/>
+      <div className="space-y-4 px-20 mt-16">
         {visits?.data?.length === 0 ? (
           <div className="col-span-full text-center py-10">No media found</div>
         ) : (
