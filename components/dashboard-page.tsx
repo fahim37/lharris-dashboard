@@ -1180,7 +1180,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-            <div>
+            <div className="max-h-[420px] overflow-y-auto">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle>Recent Activity</CardTitle>
@@ -1207,8 +1207,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-1">
+            <div className="md:col-span-2 ">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
@@ -1235,7 +1235,7 @@ export default function DashboardPage() {
                   <div className="text-xs text-gray-500">View and manage all scheduled visits</div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
                     {visitsData?.data && visitsData.data.length > 0 ? (
                       filteredOverviewVisits.map((visit) => (
                         <div key={visit._id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
@@ -1298,7 +1298,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-            <div>
+            <div className=" max-h-[410px] overflow-y-auto">
               <Card className="shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
