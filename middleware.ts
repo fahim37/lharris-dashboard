@@ -18,18 +18,26 @@ export async function middleware(request: NextRequest) {
 
   const isStatic = pathname.startsWith("/_next") || pathname.includes(".");
 
+  // Redirect unauthenticated users trying to access protected routes
   if (!token && !isPublicRoute && !isStatic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Redirect authenticated users away from public routes
   if (token && isPublicRoute) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Restrict /dashboard to admin only
+  if (pathname.startsWith("/dashboard")) {
+    if (!token || token.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url)); // Or use a /403 page
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Match all paths except static files, image assets, and API routes
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

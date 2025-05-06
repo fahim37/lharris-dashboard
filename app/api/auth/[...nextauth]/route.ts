@@ -26,13 +26,20 @@ const handler = NextAuth({
           });
 
           if (!result.success) {
-            throw new Error(result.message || "Invalid credentials");
+            throw new Error("Invalid credentials");
           }
 
           const user = result.data.user;
 
+          // Block client users from logging in
+          if (user.role === "client") {
+            throw new Error(
+              "You cannot log in as a client in the admin dashboard."
+            );
+          }
+
           return {
-            id: user._id.toString(), // Convert to string if needed
+            id: user._id.toString(),
             name: user.fullname,
             email: user.email,
             role: user.role,
@@ -63,6 +70,7 @@ const handler = NextAuth({
           isVerified: user.isVerified,
           status: user.status,
         };
+        token.role = user.role;
         token.accessToken = user.token;
       }
       return token;
