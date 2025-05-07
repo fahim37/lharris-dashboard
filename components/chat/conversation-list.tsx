@@ -16,7 +16,7 @@ export function ConversationList({
 }: ConversationListProps) {
   const { data: session } = useSession();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [searchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,13 +50,20 @@ export function ConversationList({
     }
   }, [session?.accessToken]);
 
-  const filteredConversations = conversations.filter((conversation) => {
+  const sortedConversations = [...conversations].sort((a, b) => {
+    const aLast = a.messages?.[a.messages.length - 1]?.createdAt ?? 0;
+    const bLast = b.messages?.[b.messages.length - 1]?.createdAt ?? 0;
+    return new Date(bLast).getTime() - new Date(aLast).getTime();
+  });
+
+  const filteredConversations = sortedConversations.filter((conversation) => {
     const clientName = conversation?.client?.name || "";
     return clientName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   return (
     <div className="flex flex-col h-full border-r">
+      {/* Uncomment and style this search input if you want to enable search */}
       {/* <div className="p-4 border-b">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
