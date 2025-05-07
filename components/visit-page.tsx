@@ -188,7 +188,7 @@ export function VisitPage() {
       if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
       const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
       console.log(visitsResponse, "visitsData");
-     
+
       setVisits(
         visitsData.data.map((visit: VisitApiResponse) => ({
           id: visit._id,

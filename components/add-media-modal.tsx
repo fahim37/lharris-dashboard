@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 interface AddMediaModalProps {
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -133,6 +134,7 @@ export function AddMediaModal({
       console.error("Error submitting form:", error);
     } finally {
       setIsSubmitting(false);
+      toast.success("Media added successfully");
     }
   };
 
@@ -240,6 +242,7 @@ export function AddMediaModal({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Issue found">Issue Found</SelectItem>
+                        <SelectItem value="Issue notfound">Issue NotFound</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

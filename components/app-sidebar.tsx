@@ -43,7 +43,7 @@ export function AppSidebar() {
   }
 
   return (
-    <div className="sidebar h-screen w-[200px] flex flex-col z-50">
+    <div className="sticky top-0 left-0 sidebar h-screen w-[200px] flex flex-col z-50">
       <div className="royal-logo">
         <div className="w-20 h-20 relative">
           <Image

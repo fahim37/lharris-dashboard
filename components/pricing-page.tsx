@@ -144,6 +144,8 @@ export function PricingPage() {
     monthlyRevenue: 0,
     activeDiscounts: 0,
   });
+  console.log(metrics);
+  
   const [plans, setPlans] = useState<Plan[]>([]);
 
   const form = useForm<FormData>({
@@ -173,7 +175,7 @@ export function PricingPage() {
 
         setMetrics({
           activePlans: activePlansRes.totalActivePlans || 0,
-          monthlyRevenue: monthlyRevenueRes.monthlyRevenue || 0,
+          monthlyRevenue: monthlyRevenueRes.data.monthlyRevenue || 0,
           activeDiscounts: activeDiscountsRes.activeDiscounts || 0,
         });
 
@@ -308,7 +310,7 @@ export function PricingPage() {
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-blue-600 flex items-center">
-                <Check className="h-4 w-4 mr-1" /> Monthly Revenue
+                <Check className="h-4 w-4 mr-1" /> Monthly Revenue 
               </CardTitle>
             </CardHeader>
             <CardContent>
