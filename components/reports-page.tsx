@@ -155,7 +155,7 @@ export function ReportsPage() {
     }
   };
 
-  const fetchVisits = async (page: number = 1, limit: number = 2) => {
+  const fetchVisits = async (page: number = 1, limit: number = 5) => {
     if (status !== "authenticated" || !session?.accessToken) {
       toast.error("Please sign in to view visits data");
       return;
@@ -350,9 +350,9 @@ export function ReportsPage() {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col  ">
       <PageHeader title="Admin Name" />
-      <div className="p-4">
+      <div className="p-2">
         <div className="bg-white rounded-md shadow-sm p-4 mb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex space-x-2">
@@ -417,7 +417,7 @@ export function ReportsPage() {
                     </div>
                   ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={revenueData}>
+                      <LineChart className="p-1" data={revenueData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis
                           dataKey="date"

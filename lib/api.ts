@@ -215,7 +215,7 @@ export async function getAllPlans() {
 
 export async function deletePlan(planId: string) {
   return fetchAPI(`/plans/delete-plan/${planId}`, {
-    method: "DELETE",
+    method: "PATCH",
   });
 }
 /* eslint-disable @typescript-eslint/no-explicit-any */

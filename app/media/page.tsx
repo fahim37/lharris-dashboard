@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaViewerDialog } from "@/components/media-viewer-dialog";
 import { Eye, Trash } from "lucide-react";
@@ -28,6 +28,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 
 interface Visit {
+  visitId: ReactNode;
   _id: string;
   client: {
     _id: string;
@@ -61,16 +62,11 @@ interface Visits {
 
 export default function MediaPage() {
   const [page, setPage] = useState(1);
-
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   const [selectedMedia, setSelectedMedia] = useState<any>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteMediaOpen, setIsDeleteMediaOpen] = useState(false);
-
-  const openModal = () => setIsModalOpen(true);
-  // const closeModal = () => setIsModalOpen(false)
+  const [visitToDelete, setVisitToDelete] = useState<string | null>(null);
 
   const [visits, setVisits] = useState<Visits>({
     data: [],
@@ -83,7 +79,6 @@ export default function MediaPage() {
   });
 
   const session = useSession();
-
   const TOKEN = session.data?.accessToken;
 
   const headers = {
@@ -91,10 +86,10 @@ export default function MediaPage() {
     Authorization: `Bearer ${TOKEN}`,
   };
 
-  const getAllVisits = async () => {
+  const getAllVisits = async (page: number) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/active-visit-client`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/active-visit-client?page=${page}`,
         {
           method: "GET",
           headers,
@@ -103,47 +98,64 @@ export default function MediaPage() {
 
       if (!response.ok) {
         console.log("Error: ", response.status);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       setVisits(data);
     } catch (error) {
       console.error("API Error:", error);
-      throw error;
+      toast.error("Failed to fetch visits");
     }
   };
 
   useEffect(() => {
-    getAllVisits();
+    if (TOKEN) {
+      getAllVisits(page);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, TOKEN]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
   };
-
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleViewMedia = (media: any) => {
     setSelectedMedia(media);
     setIsViewerOpen(true);
   };
 
   const handleDeleteVisit = async (visitId: string) => {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitId}`,
-      {
-        method: "DELETE",
-        headers,
-      }
-    );
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/issues/delete-visit/${visitId}`,
+        {
+          method: "DELETE",
+          headers,
+        }
+      );
 
-    if (!response.ok) {
-      console.log("Error: ", response.status);
-    } else {
-      getAllVisits();
+      if (!response.ok) {
+        console.log("Error: ", response.status);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await getAllVisits(page);
       toast.success("Visit deleted successfully");
+    } catch (error) {
+      console.error("Delete Error:", error);
+      toast.error("Failed to delete visit");
     }
     setIsDeleteMediaOpen(false);
+    setVisitToDelete(null);
   };
+
+  const openDeleteDialog = (visitId: string) => {
+    setVisitToDelete(visitId);
+    setIsDeleteMediaOpen(true);
+  };
+
+  const openModal = () => setIsModalOpen(true);
 
   return (
     <div className="">
@@ -185,10 +197,10 @@ export default function MediaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visits?.data?.map((item: Visit, i: number) => (
+                  {visits?.data?.map((item: Visit) => (
                     <TableRow key={item._id} className="text-center">
-                      <TableCell className="font-medium pl-10 ">
-                        {i + 1}
+                      <TableCell className="font-medium pl-10">
+                        {item.visitId}
                       </TableCell>
                       <TableCell>
                         {new Date(item.date).toLocaleDateString("en-US", {
@@ -227,8 +239,8 @@ export default function MediaPage() {
                             item.status === "completed"
                               ? "default"
                               : item.status === "cancelled"
-                              ? "destructive"
-                              : "outline"
+                                ? "destructive"
+                                : "outline"
                           }
                           className={
                             item?.issues?.length === 0
@@ -247,7 +259,10 @@ export default function MediaPage() {
                       <TableCell className="max-w-[200px] truncate">
                         {item?.issues?.length === 0
                           ? "No media"
-                          : `${item?.issues?.[0]?.media?.[0]?.type}, ${item?.issues?.[0]?.media?.[1]?.type}`}
+                          : item?.issues?.[0]?.media
+                            /* eslint-disable @typescript-eslint/no-explicit-any */
+                            ?.map((m: any) => m.type)
+                            .join(", ")}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-center gap-2">
@@ -261,40 +276,10 @@ export default function MediaPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsDeleteMediaOpen(true)}
+                            onClick={() => openDeleteDialog(item._id)}
                           >
                             <Trash className="h-4 w-4" />
                           </Button>
-                          {/* Delete Package Dialog */}
-                          <Dialog
-                            open={isDeleteMediaOpen}
-                            onOpenChange={setIsDeleteMediaOpen}
-                          >
-                            <DialogContent className="sm:max-w-md">
-                              <DialogHeader>
-                                <DialogTitle className="flex items-center">
-                                  <div className="bg-[#0a1172] mb-5 text-white p-1 rounded-full mr-2">
-                                    <Trash className="h-6 w-6" />
-                                  </div>
-                                  Are you sure you want to delete this package?
-                                </DialogTitle>
-                              </DialogHeader>
-                              <DialogFooter>
-                                <DialogClose asChild>
-                                  <Button type="button" variant="outline">
-                                    Cancel
-                                  </Button>
-                                </DialogClose>
-                                <Button
-                                  type="button"
-                                  className="bg-[#0a1172] hover:bg-[#1a2182]"
-                                  onClick={() => handleDeleteVisit(item._id)}
-                                >
-                                  Delete
-                                </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -302,11 +287,11 @@ export default function MediaPage() {
                 </TableBody>
               </Table>
               <PaginationComponent
-                currentPage={visits?.pagination?.currentPage || page}
-                totalPages={visits?.pagination?.totalPages}
+                currentPage={visits?.pagination?.currentPage || 1}
+                totalPages={visits?.pagination?.totalPages || 1}
                 onPageChange={handlePageChange}
-                totalItems={visits?.pagination?.totalItems}
-                itemsPerPage={visits?.pagination?.itemsPerPage}
+                totalItems={visits?.pagination?.totalItems || 0}
+                itemsPerPage={visits?.pagination?.itemsPerPage || 10}
               />
             </div>
           </div>
@@ -319,6 +304,32 @@ export default function MediaPage() {
           onOpenChange={setIsViewerOpen}
         />
       )}
+      <Dialog open={isDeleteMediaOpen} onOpenChange={setIsDeleteMediaOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <div className="bg-[#0a1172] mb-5 text-white p-1 rounded-full mr-2">
+                <Trash className="h-6 w-6" />
+              </div>
+              Are you sure you want to delete this visit?
+            </DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              className="bg-[#0a1172] hover:bg-[#1a2182]"
+              onClick={() => visitToDelete && handleDeleteVisit(visitToDelete)}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
