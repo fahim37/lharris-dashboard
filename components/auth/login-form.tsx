@@ -60,8 +60,7 @@ export function LoginForm() {
         toast.error(response?.error);
       } else {
         toast.success("Login successful");
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       }
     } catch (error) {
       toast.error("Something went wrong. Please try again. || " + error);
