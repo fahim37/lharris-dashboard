@@ -15,42 +15,36 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error("Email and password are required");
-          }
-
-          const result = await loginUser({
-            email: credentials.email,
-            password: credentials.password,
-          });
-
-          if (!result.success) {
-            throw new Error("Invalid credentials");
-          }
-
-          const user = result.data.user;
-
-          // Block client users from logging in
-          if (user.role === "client") {
-            throw new Error(
-              "You cannot log in as a client in the admin dashboard."
-            );
-          }
-
-          return {
-            id: user._id.toString(),
-            name: user.fullname,
-            email: user.email,
-            role: user.role,
-            isVerified: user.isVerified,
-            status: user.status,
-            token: result.token,
-          };
-        } catch (error) {
-          console.error("Authorization error:", error);
-          return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
         }
+
+        const result = await loginUser({
+          email: credentials.email,
+          password: credentials.password,
+        });
+
+        if (!result.success) {
+          throw new Error(result.message || "Invalid credentials");
+        }
+
+        const user = result.data.user;
+
+        if (user.role === "client") {
+          throw new Error(
+            "You cannot log in as a client in the admin dashboard."
+          );
+        }
+
+        return {
+          id: user._id.toString(),
+          name: user.fullname,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+          status: user.status,
+          token: result.token,
+        };
       },
     }),
   ],
