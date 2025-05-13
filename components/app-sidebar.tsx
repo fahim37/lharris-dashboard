@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
 import { signOut } from "next-auth/react";
 
 export function AppSidebar() {
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -28,12 +30,20 @@ export function AppSidebar() {
     { path: "/chat", label: "Messages", icon: MessageCircle },
   ];
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleNavigation = (path: string) => {
     router.push(path);
   };
 
+  if (!isMounted) {
+    return <div className="h-screen w-[200px] flex flex-col z-50"></div>;
+  }
+
   return (
-    <div className="sidebar h-screen w-[200px] flex flex-col z-50">
+    <div className="sticky top-0 left-0 sidebar h-screen w-[200px] flex flex-col z-50">
       <div className="royal-logo">
         <div className="w-20 h-20 relative">
           <Image
@@ -42,6 +52,7 @@ export function AppSidebar() {
             width={80}
             height={80}
             className="object-contain"
+            priority
           />
         </div>
       </div>
