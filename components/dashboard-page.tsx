@@ -39,13 +39,6 @@ interface MetricsData {
   inProgress: number
 }
 
-// Define types for our calendar data
-// interface CalendarDay {
-//   day: number
-//   status?: "success" | "cancelled" | "pending" | "confirmed" | "normal"
-//   hasVisit?: boolean
-//   visitTime?: string
-// }
 
 // Define types for our visits API response
 interface VisitClient {
@@ -234,13 +227,7 @@ interface Notification {
   time?: string
 }
 
-// Interface for the pagination object
-// interface Pagination {
-//   page: number
-//   limit: number
-//   total: number
-//   pages: number
-// }
+
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -273,7 +260,6 @@ export default function DashboardPage() {
   const [selectedVisitId, setSelectedVisitId] = useState("")
   const [isDeleteVisitDialogOpen, setIsDeleteVisitDialogOpen] = useState(false)
   const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all")
-  const [visitDateFilter, setVisitDateFilter] = useState<string>("all")
   const [isEditVisitDialogOpen, setIsEditVisitDialogOpen] = useState(false)
   const [editVisitData, setEditVisitData] = useState<EditVisitData>({
     staff: "",
@@ -290,15 +276,15 @@ export default function DashboardPage() {
   // Pagination states for User Management tab
   const [currentUserPage, setCurrentUserPage] = useState<number>(1)
   const [totalUserPages, setTotalUserPages] = useState<number>(1)
-  const [itemsPerPage] = useState<number>(5)
+  const [itemsPerPage] = useState<number>(10)
   // Pagination states for Visits tab
   const [currentVisitPage, setCurrentVisitPage] = useState<number>(1)
   const [totalVisitPages, setTotalVisitPages] = useState<number>(1)
-  const [visitsPerPage] = useState<number>(5)
+  const [visitsPerPage] = useState<number>(10)
 
   const [metricsData, setMetricsData] = useState<AllMetrics | null>(null)
   console.log("Metrics Data:", metricsData);
-  
+
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([])
   const [isRevenueLoading, setIsRevenueLoading] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
@@ -416,41 +402,58 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token, currentUserPage])
 
+
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${currentVisitPage}&limit=${visitsPerPage}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+        const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`;
+        const queryParams = new URLSearchParams({
+          page: currentVisitPage.toString(),
+          limit: "10",
+        });
+
+        if (visitStatusFilter !== "all") {
+          queryParams.append("status", visitStatusFilter);
+        }
+
+        const apiUrl = `${baseUrl}?${queryParams.toString()}`;
+
+        const res = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
-        )
+        });
 
         if (!res.ok) {
-          throw new Error("Failed to fetch visits")
+          throw new Error("Failed to fetch visits");
         }
 
-        const data: VisitResponse = await res.json()
-        setVisitsData(data)
+        const data: VisitResponse = await res.json();
+        setVisitsData(data);
         if (data.meta) {
-          setTotalVisitPages(data.meta.totalPages)
-          setCurrentVisitPage(data.meta.currentPage)
+          setTotalVisitPages(data.meta.totalPages);
+          setCurrentVisitPage(data.meta.currentPage);
         }
       } catch (err) {
-        console.error("Error fetching visits:", err)
-        toast.error("Failed to fetch visits")
+        console.error("Error fetching visits:", err);
+        toast.error("Failed to fetch visits");
       }
-    }
+    };
 
     if (activeTab === "visits") {
-      fetchVisits()
+      fetchVisits();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, token, currentVisitPage])
+  }, [activeTab, currentVisitPage, visitStatusFilter, token]);
+
+
+  const handleStatusFilterChange = (newFilter: string) => {
+    setVisitStatusFilter(newFilter);
+    setCurrentVisitPage(1); // This will trigger the fetch with correct page
+  };
+
 
   // Fetch staff members for the edit form
   useEffect(() => {
@@ -499,49 +502,10 @@ export default function DashboardPage() {
   })
 
   // Filter visits based on search term and filters for the Visits tab
-  const filteredVisits = React.useMemo(() => {
-    if (!visitsData?.data) return []
+  // const filteredVisits = React.useMemo(() => {
+  //   return visitsData?.data || []
+  // }, [visitsData])
 
-    return visitsData.data.filter((visit) => {
-      // Filter by search term
-      const matchesSearch =
-        visit.address.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
-        visit.client.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase()) ||
-        (visit.staff?.fullname && visit.staff.fullname.toLowerCase().includes(visitSearchTerm.toLowerCase())) ||
-        visit._id.includes(visitSearchTerm)
-
-      // Filter by status (case-insensitive comparison)
-      const matchesStatus =
-        visitStatusFilter === "all" || visit.status.toLowerCase() === visitStatusFilter.toLowerCase()
-
-      // Filter by date
-      let matchesDate = true
-      if (visitDateFilter === "today") {
-        const today = new Date().toISOString().split("T")[0]
-        matchesDate = visit.date.includes(today)
-      } else if (visitDateFilter === "thisweek") {
-        const now = new Date()
-        const startOfWeek = new Date(now)
-        startOfWeek.setDate(now.getDate() - now.getDay())
-        startOfWeek.setHours(0, 0, 0, 0)
-
-        const endOfWeek = new Date(now)
-        endOfWeek.setDate(startOfWeek.getDate() + 6)
-        endOfWeek.setHours(23, 59, 59, 999)
-
-        const visitDate = new Date(visit.date)
-        matchesDate = visitDate >= startOfWeek && visitDate <= endOfWeek
-      } else if (visitDateFilter === "thismonth") {
-        const now = new Date()
-        const currentMonth = now.getMonth()
-        const currentYear = now.getFullYear()
-        const visitDate = new Date(visit.date)
-        matchesDate = visitDate.getMonth() === currentMonth && visitDate.getFullYear() === currentYear
-      }
-
-      return matchesSearch && matchesStatus && matchesDate
-    })
-  }, [visitsData, visitSearchTerm, visitStatusFilter, visitDateFilter])
 
   // Filter visits for the Overview tab
   const filteredOverviewVisits = React.useMemo(() => {
@@ -573,21 +537,7 @@ export default function DashboardPage() {
     return "bg-gray-100 text-gray-800"
   }
 
-  // Get calendar day class for styling
-  // const getCalendarDayClass = (status?: string) => {
-  //   switch (status) {
-  //     case "success":
-  //       return "bg-green-100"
-  //     case "cancelled":
-  //       return "bg-red-100"
-  //     case "pending":
-  //       return "bg-yellow-100"
-  //     case "confirmed":
-  //       return "bg-blue-100"
-  //     default:
-  //       return ""
-  //   }
-  // }
+  
 
   const handleDeleteClick = (userId: string) => {
     setSelectedUserId(userId)
@@ -950,7 +900,7 @@ export default function DashboardPage() {
         const data = await res.json()
         setNotifications(data.data)
         /* eslint-disable @typescript-eslint/no-explicit-any */
-      } catch (err: any ) {
+      } catch (err: any) {
         setError(err.message)
       }
     }
@@ -963,7 +913,7 @@ export default function DashboardPage() {
     const fetchVisitsForOverview = async () => {
       if (activeTab === "overview" && !visitsData) {
         try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?limit=10`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -1029,7 +979,7 @@ export default function DashboardPage() {
                   <div className="mr-2 text-blue-600">
                     <Calendar className="h-5 w-5" />
                   </div>
-                  Total Visits 
+                  Total Visits
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1243,12 +1193,12 @@ export default function DashboardPage() {
                         <div key={visit._id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                           <div
                             className={`w-2 self-stretch rounded-full ${visit.status.toLowerCase() === "completed"
-                                ? "bg-green-500"
-                                : visit.status.toLowerCase() === "cancelled"
-                                  ? "bg-red-500"
-                                  : visit.status.toLowerCase() === "confirmed"
-                                    ? "bg-blue-500"
-                                    : "bg-yellow-500"
+                              ? "bg-green-500"
+                              : visit.status.toLowerCase() === "cancelled"
+                                ? "bg-red-500"
+                                : visit.status.toLowerCase() === "confirmed"
+                                  ? "bg-blue-500"
+                                  : "bg-yellow-500"
                               }`}
                           ></div>
                           <div className="flex-1 min-w-0">
@@ -1514,7 +1464,7 @@ export default function DashboardPage() {
                   <div className="mr-2 text-blue-600">
                     <Calendar className="h-5 w-5" />
                   </div>
-                  Total Visits 
+                  Total Visits
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1564,7 +1514,7 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Select defaultValue="all" onValueChange={setVisitStatusFilter}>
+              <Select defaultValue="all" onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
@@ -1576,18 +1526,7 @@ export default function DashboardPage() {
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                 </SelectContent>
               </Select>
-              <Select defaultValue="all" onValueChange={setVisitDateFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Date Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Dates</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="thisweek">This Week</SelectItem>
-                  <SelectItem value="thismonth">This Month</SelectItem>
-                </SelectContent>
-              </Select>
-              {/* <Button className="bg-[#091057] hover:bg-[#091057]/80">Add Visit</Button> */}
+          
             </div>
           </div>
 
@@ -1608,8 +1547,8 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredVisits.length > 0 ? (
-                    filteredVisits.map((visit) => (
+                  {visitsData?.data && visitsData.data.length > 0 ? (
+                    visitsData.data.map((visit) => (
                       <TableRow key={visit._id}>
                         <TableCell>{formatDate(visit.date)}</TableCell>
                         <TableCell>{extractTime(visit.date)}</TableCell>

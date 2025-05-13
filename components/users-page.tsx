@@ -438,11 +438,10 @@ export function UsersPage() {
                       <TableCell>{user.role}</TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            user.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs ${user.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                            }`}
                         >
                           {user.status}
                         </span>
@@ -516,9 +515,8 @@ export function UsersPage() {
                     key={page}
                     variant="outline"
                     size="sm"
-                    className={`h-8 w-8 p-0 ${
-                      currentPage === page ? "bg-yellow-100" : ""
-                    }`}
+                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""
+                      }`}
                     onClick={() => handlePageChange(page)}
                   >
                     {page}
