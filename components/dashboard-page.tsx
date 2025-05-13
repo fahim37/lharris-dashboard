@@ -1189,18 +1189,18 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-3 text-xs text-gray-500 pb-2">
+                    <div className="grid grid-cols-2 text-xs text-gray-500 pb-2">
                       <div>Name</div>
                       <div>Package</div>
-                      <div>Price</div>
+                      {/* <div>Price</div> */}
                     </div>
                     {recentData?.data.map((activity, index) => (
-                      <div key={index} className="grid grid-cols-3 items-center">
+                      <div key={index} className="grid grid-cols-2 items-center">
                         <div className="text-sm font-medium">{activity?.user?.fullname}</div>
                         <div className="text-sm">{activity?.plan?.name}</div>
-                        <div>
+                        {/* <div>
                           <span className={`px-2 py-1 rounded-full text-xs`}>{activity?.plan?.price}</span>
-                        </div>
+                        </div> */}
                       </div>
                     ))}
                   </div>
