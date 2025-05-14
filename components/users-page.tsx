@@ -634,14 +634,7 @@ export function UsersPage() {
               </div>
               Edit User
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsEditUserOpen(false)}
-              className="absolute right-4 top-4"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+           
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
