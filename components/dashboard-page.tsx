@@ -283,7 +283,7 @@ export default function DashboardPage() {
   const [visitsPerPage] = useState<number>(10)
 
   const [metricsData, setMetricsData] = useState<AllMetrics | null>(null)
-  console.log("Metrics Data:", metricsData);
+  // console.log("Metrics Data:", metricsData);
 
   const [revenueData, setRevenueData] = useState<RevenueGrowthData[]>([])
   const [isRevenueLoading, setIsRevenueLoading] = useState(false)
@@ -357,7 +357,8 @@ export default function DashboardPage() {
         const data = await res.json()
         setRecentData(data)
       } catch (err) {
-        console.error("Error:", err)
+        // console.error("Error:", err)
+        toast.error(err as string)
       }
     }
 
@@ -391,8 +392,8 @@ export default function DashboardPage() {
           setCurrentUserPage(response.pagination.currentPage)
         }
       } catch (err) {
-        console.error("Error:", err)
-        toast.error("Failed to fetch users")
+        // console.error("Error:", err)
+        toast.error( err as string || "Failed to fetch users")
       }
     }
 
@@ -474,8 +475,8 @@ export default function DashboardPage() {
         const data = await res.json()
         setStaffMembers(data.data || [])
       } catch (err) {
-        console.error("Error fetching staff members:", err)
-        toast.error("Failed to load staff members")
+        toast.error( err as string || "Error fetching staff members:", )
+    
       }
     }
 
@@ -573,8 +574,8 @@ export default function DashboardPage() {
       setUserData(userData.filter((user) => user._id !== selectedUserId))
       toast.success("User deleted successfully")
     } catch (error) {
-      console.error("Error deleting user:", error)
-      toast.error("Failed to delete user")
+      // console.error("Error deleting user:", error)
+      toast.error(error as string)
     } finally {
       setIsDeleteDialogOpen(false)
     }
@@ -601,8 +602,8 @@ export default function DashboardPage() {
 
       toast.success("User updated successfully")
     } catch (error) {
-      console.error("Error updating user:", error)
-      toast.error("Failed to update user")
+      toast.error( error as string)
+     
     } finally {
       setIsEditDialogOpen(false)
     }
@@ -626,8 +627,8 @@ export default function DashboardPage() {
       setSpecificVisit(data.data || data)
       setIsViewDialogOpen(true)
     } catch (error) {
-      console.error("Error fetching visit details:", error)
-      toast.error("Failed to fetch visit details")
+      // console.error("Error fetching visit details:", error)
+      toast.error(error as string)
     }
   }
 
@@ -659,8 +660,8 @@ export default function DashboardPage() {
       }
       toast.success("Visit deleted successfully")
     } catch (error) {
-      console.error("Error deleting visit:", error)
-      toast.error("Failed to delete visit")
+      // console.error("Error deleting visit:", error)
+      toast.error( error as string || "Failed to delete visit")
     } finally {
       setIsDeleteVisitDialogOpen(false)
     }
@@ -713,8 +714,8 @@ export default function DashboardPage() {
 
       toast.success("Visit updated successfully")
     } catch (error) {
-      console.error("Error updating visit:", error)
-      toast.error("Failed to update visit")
+      // console.error("Error updating visit:", error)
+      toast.error(error as string)
     } finally {
       setIsEditVisitDialogOpen(false)
     }
@@ -772,8 +773,8 @@ export default function DashboardPage() {
       setStatusForm({ status: "", notes: "" })
       setSelectedVisitId("")
     } catch (error) {
-      console.error("Error updating status:", error)
-      toast.error("Failed to update status. Please try again.")
+      // console.error("Error updating status:", error)
+      toast.error(error as string)
     } finally {
       setIsSubmitting(false)
     }

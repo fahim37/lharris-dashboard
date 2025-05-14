@@ -187,7 +187,7 @@ export function VisitPage() {
 
       if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
       const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
-      console.log(visitsResponse, "visitsData");
+      // console.log(visitsResponse, "visitsData");
 
       setVisits(
         visitsData.data.map((visit: VisitApiResponse) => ({
@@ -264,8 +264,8 @@ export function VisitPage() {
         )
         setTotalPages(Math.max(1, visitsData.totalPages))
       } catch (error) {
-        console.error("Error fetching data:", error)
-        toast.error("Failed to load data")
+        // console.error("Error fetching data:", error)
+        toast.error(error as string)
       } finally {
         setIsLoading(false)
       }
@@ -376,7 +376,7 @@ export function VisitPage() {
         type: "",
       })
     } catch (error) {
-      console.error("Error adding visit:", error)
+      // console.error("Error adding visit:", error)
       toast.error(error instanceof Error ? error.message : "Failed to add visit")
     } finally {
       setIsAdding(false)
@@ -424,8 +424,8 @@ export function VisitPage() {
       setIsEditVisitOpen(false)
       setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating visit:", error)
-      toast.error("Failed to update visit")
+      // console.error("Error updating visit:", error)
+      toast.error(error as string)
     } finally {
       setIsEditing(false)
     }
@@ -452,8 +452,8 @@ export function VisitPage() {
 
       toast.success("Visit deleted successfully")
     } catch (error) {
-      console.error("Error deleting visit:", error)
-      toast.error("Failed to delete visit")
+      // console.error("Error deleting visit:", error)
+      toast.error(error as string)
     } finally {
       setIsDeleteConfirmOpen(false)
       setVisitToDelete(null)
@@ -548,8 +548,8 @@ export function VisitPage() {
       setStatusForm({ status: "", notes: "" })
       setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating status:", error)
-      toast.error("Failed to update status. Please try again.")
+      // console.error("Error updating status:", error)
+      toast.error(error as string)
     } finally {
       setIsSubmitting(false)
     }

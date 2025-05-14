@@ -61,7 +61,7 @@ export async function loginUser(credentials: {
     );
 
     const data = await response.json();
-    console.log(data, "login data");
+    // console.log(data, "login data");
 
     if (!response.ok) {
       return {
@@ -94,10 +94,11 @@ export async function loginUser(credentials: {
       token: data.token,
     };
   } catch (error) {
-    console.error("Login error:", error);
+    // console.error("Login error:", error);
     return {
       success: false,
       message: "An error occurred during login",
+      error,
     };
   }
 }
@@ -127,10 +128,11 @@ export async function verifyCode(code: string) {
       data: data.data,
     };
   } catch (error) {
-    console.error("Verification error:", error);
+    // console.error("Verification error:", error);
     return {
       success: false,
       message: "An error occurred during verification",
+      error,
     };
   }
 }
