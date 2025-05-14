@@ -101,8 +101,8 @@ export function AddonServices() {
                 toast.error(result.message || "Failed to add add-on service")
             }
         } catch (error) {
-            console.error("Error adding addon service:", error)
-            toast.error("Failed to add add-on service")
+            // console.error("Error adding addon service:", error)
+            toast.error(error as string || "Failed to add add-on service")
         }
     }
 
@@ -157,8 +157,8 @@ export function AddonServices() {
                 toast.error(result.message || "Failed to delete add-on service")
             }
         } catch (error) {
-            console.error("Error deleting addon service:", error)
-            toast.error("Failed to delete add-on service")
+            // console.error("Error deleting addon service:", error)
+            toast.error(error as string || "Failed to delete add-on service")
         }
     }
 

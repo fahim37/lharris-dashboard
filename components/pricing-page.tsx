@@ -125,8 +125,8 @@ export function PricingPage() {
 
       toast.success("Payment receipt downloaded successfully")
     } catch (error) {
-      console.error("Error generating PDF:", error)
-      toast.error("Failed to download payment receipt")
+      // console.error("Error generating PDF:", error)
+      toast.error(error as string)
     }
   }
 
@@ -178,8 +178,8 @@ export function PricingPage() {
           setPlans(plansRes.data)
         }
       } catch (error) {
-        console.error("Error fetching billing metrics:", error)
-        toast.error("Failed to load billing metrics")
+        // console.error("Error fetching billing metrics:", error)
+        toast.error( error as string || "Failed to load billing metrics")
       }
     }
     if (token) {
@@ -199,8 +199,8 @@ export function PricingPage() {
       }
       form.reset()
     } catch (error) {
-      console.error("Error adding plan:", error)
-      toast.error("Failed to add package")
+      // console.error("Error adding plan:", error)
+      toast.error( error as string || "Failed to add package")
     }
   }
 
@@ -212,8 +212,8 @@ export function PricingPage() {
       setPlans((prevPlans) => prevPlans.filter((plan) => plan._id !== selectedPlanId))
       setSelectedPlanId("")
     } catch (error) {
-      console.error("Error deleting plan:", error)
-      toast.error("Failed to delete plan")
+      // console.error("Error deleting plan:", error)
+      toast.error( error as string || "Failed to delete plan")
     }
   }
 

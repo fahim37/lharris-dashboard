@@ -94,6 +94,7 @@ interface VisitData {
   issues: VisitIssue[];
   createdAt: string;
   updatedAt: string;
+  visitId: string;
   __v: number;
 }
 
@@ -605,7 +606,7 @@ export function ReportsPage() {
                 ) : filteredVisits.length > 0 ? (
                   filteredVisits.map((visit) => (
                     <TableRow key={visit._id}>
-                      <TableCell>{visit._id.substring(0, 6)}</TableCell>
+                      <TableCell>{visit.visitId}</TableCell>
                       <TableCell>{formatDate(visit.date)}</TableCell>
                       <TableCell>{extractTime(visit.date)}</TableCell>
                       <TableCell>{visit.client.fullname}</TableCell>
