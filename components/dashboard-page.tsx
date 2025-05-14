@@ -299,6 +299,19 @@ export default function DashboardPage() {
   const [isOverviewVisitsLoading, setIsOverviewVisitsLoading] = useState(false)
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
 
+  // Debounce function for search
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+
+  // Debounced search handler
+  const debouncedSearch = useCallback((value: string) => {
+    const handler = setTimeout(() => {
+      setVisitSearchTerm(value);
+      setCurrentVisitPage(1);
+    }, 500);
+  
+    return () => clearTimeout(handler);
+  }, [setVisitSearchTerm, setCurrentVisitPage]) as (value: string) => void;
+
   // Fetch metrics data from API
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -441,6 +454,11 @@ export default function DashboardPage() {
           queryParams.append("status", visitStatusFilter)
         }
 
+        // Add search term to query params if it exists
+        if (visitSearchTerm.trim()) {
+          queryParams.append("search", visitSearchTerm.trim())
+        }
+
         const apiUrl = `${baseUrl}?${queryParams.toString()}`
 
         const res = await fetch(apiUrl, {
@@ -470,8 +488,7 @@ export default function DashboardPage() {
     if (activeTab === "visits") {
       fetchVisits()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentVisitPage, visitStatusFilter, token])
+  }, [activeTab, currentVisitPage, visitStatusFilter, visitSearchTerm, token])
 
   const handleStatusFilterChange = (newFilter: string) => {
     setVisitStatusFilter(newFilter)
@@ -937,7 +954,8 @@ export default function DashboardPage() {
         setNotifications(data.data)
         /* eslint-disable @typescript-eslint/no-explicit-any */
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : String(err))
+        console.error("Error fetching notifications:", err)
+        // toast.error(err instanceof Error ? err.message : String(err))
         // setError(err instanceof Error ? err.message : String(err))
       } finally {
         setIsNotificationsLoading(false)
@@ -1528,8 +1546,8 @@ export default function DashboardPage() {
               <Input
                 placeholder="Search by name, address..."
                 className="pl-9 pr-4 py-2 w-full"
-                value={visitSearchTerm}
-                onChange={(e) => setVisitSearchTerm(e.target.value)}
+                defaultValue={visitSearchTerm}
+                onChange={(e) => debouncedSearch(e.target.value)}
               />
             </div>
             <div className="flex gap-2">
