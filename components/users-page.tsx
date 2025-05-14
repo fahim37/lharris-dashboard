@@ -1,31 +1,14 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { PageHeader } from "@/components/page-header"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,332 +18,349 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, Users } from "lucide-react";
-import { toast } from "sonner";
-import { useSession } from "next-auth/react";
+} from "@/components/ui/alert-dialog"
+import { Pencil, Trash2, Users, X } from "lucide-react"
+import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 
 // Interfaces
 interface User {
-  _id: string;
-  fullname: string;
-  email: string;
-  role: string;
-  status: string;
-  lastActive?: string;
+  _id: string
+  fullname: string
+  email: string
+  role: string
+  status: string
+  lastActive?: string
 }
 
 interface ApiResponse<T> {
-  status: boolean;
-  data: T;
+  status: boolean
+  message: string
+  data: T
   pagination?: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-  };
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+  }
 }
 
 interface UserFormData {
-  fullname: string;
-  email: string;
-  password: string;
-  role: string;
+  fullname: string
+  email: string
+  password: string
+  role: string
 }
 
-const getAllUsers = async (
-  token: string,
-  page: number = 1,
-  limit: number = 10
-): Promise<ApiResponse<User[]>> => {
+interface FetchUsersParams {
+  page?: number
+  limit?: number
+  search?: string
+  role?: string
+  status?: string
+}
+
+const getAllUsers = async (token: string, params: FetchUsersParams): Promise<ApiResponse<User[]>> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${page}&limit=${limit}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    // Build query parameters
+    const queryParams = new URLSearchParams()
+
+    if (params.page) queryParams.append("page", params.page.toString())
+    if (params.limit) queryParams.append("limit", params.limit.toString())
+    if (params.search && params.search.trim() !== "") queryParams.append("search", params.search)
+    if (params.role && params.role !== "all") queryParams.append("role", params.role)
+    if (params.status && params.status !== "all") queryParams.append("status", params.status)
+
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?${queryParams.toString()}`
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error("API Error:", error);
-    throw error;
+    console.error("API Error:", error)
+    throw error
   }
-};
+}
 
-const addUser = async (
-  userData: UserFormData,
-  token: string
-): Promise<ApiResponse<User>> => {
+const addUser = async (userData: UserFormData, token: string): Promise<ApiResponse<User>> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/add-user`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      }
-    );
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/add-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    })
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error("API Error:", error);
-    throw error;
+    console.error("API Error:", error)
+    throw error
   }
-};
+}
 
 const updateUser = async (
   userId: string,
   userData: Partial<UserFormData>,
-  token: string
+  token: string,
 ): Promise<ApiResponse<User>> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${userId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      }
-    );
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/update-user/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    })
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error("API Error:", error);
-    throw error;
+    console.error("API Error:", error)
+    throw error
   }
-};
+}
 
-const deleteUser = async (
-  userId: string,
-  token: string
-): Promise<ApiResponse<null>> => {
+const deleteUser = async (userId: string, token: string): Promise<ApiResponse<null>> => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${userId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/delete-user/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error("API Error:", error);
-    throw error;
+    console.error("API Error:", error)
+    throw error
   }
-};
+}
 
 export function UsersPage() {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [isAddUserOpen, setIsAddUserOpen] = useState<boolean>(false);
-  const [isEditUserOpen, setIsEditUserOpen] = useState<boolean>(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(9);
-  const { data: session, status } = useSession();
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [selectedRole, setSelectedRole] = useState<string>("")
+  const [selectedStatus, setSelectedStatus] = useState<string>("")
+  const [isAddUserOpen, setIsAddUserOpen] = useState<boolean>(false)
+  const [isEditUserOpen, setIsEditUserOpen] = useState<boolean>(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [totalPages, setTotalPages] = useState<number>(1)
+  const [totalItems, setTotalItems] = useState<number>(0)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const { data: session, status } = useSession()
   const [newUser, setNewUser] = useState<UserFormData>({
     fullname: "",
     email: "",
     password: "",
     role: "client",
-  });
+  })
   const [editUser, setEditUser] = useState<UserFormData>({
     fullname: "",
     email: "",
     password: "",
     role: "",
-  });
+  })
 
+  // Debounce search to avoid too many API calls
   useEffect(() => {
-    if (status === "authenticated" && session?.accessToken) {
-      fetchUsers(session.accessToken, currentPage);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, session, currentPage]);
+    const timer = setTimeout(() => {
+      if (status === "authenticated" && session?.accessToken) {
+        fetchUsers()
+      }
+    }, 500)
 
-  const fetchUsers = async (token: string, page: number) => {
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedRole, selectedStatus, currentPage, status, session])
+
+  const fetchUsers = async () => {
+    if (!session?.accessToken) return
+
+    setIsLoading(true)
     try {
-      const response = await getAllUsers(token, page, itemsPerPage);
+      const response = await getAllUsers(session.accessToken, {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        role: selectedRole,
+        status: selectedStatus,
+      })
+
       if (response.status && response.data) {
-        setUsers(response.data);
+        setUsers(response.data)
         if (response.pagination) {
-          setTotalPages(response.pagination.totalPages);
-          setCurrentPage(response.pagination.currentPage);
+          setCurrentPage(response.pagination.currentPage)
+          setTotalPages(response.pagination.totalPages)
+          setTotalItems(response.pagination.totalItems)
+          setItemsPerPage(response.pagination.itemsPerPage)
         }
+      } else {
+        toast.error(response.message || "Failed to fetch users")
       }
     } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
+      console.error("Error fetching users:", error)
+      toast.error("Failed to fetch users")
+    } finally {
+      setIsLoading(false)
     }
-  };
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user._id.includes(searchTerm);
-    const matchesRole =
-      selectedRole && selectedRole !== "all"
-        ? user.role === selectedRole.toLowerCase()
-        : true;
-    const matchesStatus =
-      selectedStatus && selectedStatus !== "all"
-        ? user.status === selectedStatus.toLowerCase()
-        : true;
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  }
 
   const handleAddUser = async () => {
     if (status !== "authenticated" || !session?.accessToken) {
-      toast.error("Not authenticated");
-      return;
+      toast.error("Not authenticated")
+      return
     }
 
     try {
-      await addUser(newUser, session.accessToken);
-      toast.success("User added successfully");
-      setIsAddUserOpen(false);
-      fetchUsers(session.accessToken, currentPage);
+      await addUser(newUser, session.accessToken)
+      toast.success("User added successfully")
+      setIsAddUserOpen(false)
+      fetchUsers()
       setNewUser({
         fullname: "",
         email: "",
         password: "",
         role: "client",
-      });
+      })
     } catch (error) {
-      console.error("Error adding user:", error);
-      toast.error("Failed to add user");
+      console.error("Error adding user:", error)
+      toast.error("Failed to add user")
     }
-  };
+  }
 
   const handleEditUser = async () => {
     if (!currentUser || status !== "authenticated" || !session?.accessToken) {
-      toast.error("Not authenticated or no user selected");
-      return;
+      toast.error("Not authenticated or no user selected")
+      return
     }
 
     try {
-      await updateUser(currentUser._id, editUser, session.accessToken);
-      toast.success("User updated successfully");
-      setIsEditUserOpen(false);
-      fetchUsers(session.accessToken, currentPage);
+      await updateUser(currentUser._id, editUser, session.accessToken)
+      toast.success("User updated successfully")
+      setIsEditUserOpen(false)
+      fetchUsers()
     } catch (error) {
-      console.error("Error updating user:", error);
-      toast.error("Failed to update user");
+      console.error("Error updating user:", error)
+      toast.error("Failed to update user")
     }
-  };
+  }
 
   const confirmDeleteUser = (userId: string) => {
-    setUserToDelete(userId);
-    setIsDeleteDialogOpen(true);
-  };
+    setUserToDelete(userId)
+    setIsDeleteDialogOpen(true)
+  }
 
   const handleDeleteUser = async () => {
     if (!userToDelete || status !== "authenticated" || !session?.accessToken) {
-      toast.error("Not authenticated or no user selected");
-      return;
+      toast.error("Not authenticated or no user selected")
+      return
     }
 
     try {
-      await deleteUser(userToDelete, session.accessToken);
-      toast.success("User deleted successfully");
-      setIsDeleteDialogOpen(false);
-      setUserToDelete(null);
-      fetchUsers(session.accessToken, currentPage);
+      await deleteUser(userToDelete, session.accessToken)
+      toast.success("User deleted successfully")
+      setIsDeleteDialogOpen(false)
+      setUserToDelete(null)
+      fetchUsers()
     } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("Failed to delete user");
+      console.error("Error deleting user:", error)
+      toast.error("Failed to delete user")
     }
-  };
+  }
 
   const formatLastActive = (lastActive?: string): string => {
-    if (!lastActive) return "Never";
+    if (!lastActive) return "Never"
 
-    const date = new Date(lastActive);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    const date = new Date(lastActive)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
 
     if (diffHrs < 24) {
-      return `${diffHrs}hr Ago`;
+      return `${diffHrs}hr Ago`
     } else {
-      const diffDays = Math.floor(diffHrs / 24);
-      return `${diffDays} Day${diffDays > 1 ? "s" : ""} Ago`;
+      const diffDays = Math.floor(diffHrs / 24)
+      return `${diffDays} Day${diffDays > 1 ? "s" : ""} Ago`
     }
-  };
+  }
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    formType: "new" | "edit"
-  ) => {
-    const { id, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, formType: "new" | "edit") => {
+    const { id, value } = e.target
     if (formType === "new") {
-      setNewUser((prev) => ({ ...prev, [id]: value }));
+      setNewUser((prev) => ({ ...prev, [id]: value }))
     } else {
-      setEditUser((prev) => ({ ...prev, [id]: value }));
+      setEditUser((prev) => ({ ...prev, [id]: value }))
     }
-  };
+  }
 
-  const handleSelectChange = (
-    name: string,
-    value: string,
-    formType: "new" | "edit"
-  ) => {
+  const handleSelectChange = (name: string, value: string, formType: "new" | "edit") => {
     if (formType === "new") {
-      setNewUser((prev) => ({ ...prev, [name]: value }));
+      setNewUser((prev) => ({ ...prev, [name]: value }))
     } else {
-      setEditUser((prev) => ({ ...prev, [name]: value }));
+      setEditUser((prev) => ({ ...prev, [name]: value }))
     }
-  };
+  }
+
+  const resetPagination = () => {
+    setCurrentPage(1)
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    resetPagination()
+  }
+
+  const handleRoleChange = (value: string) => {
+    setSelectedRole(value)
+    resetPagination()
+  }
+
+  const handleStatusChange = (value: string) => {
+    setSelectedStatus(value)
+    resetPagination()
+  }
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+      setCurrentPage(page)
     }
-  };
+  }
 
   if (status === "loading") {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   if (status === "unauthenticated") {
-    return <div>Please log in to view this page.</div>;
+    return <div>Please log in to view this page.</div>
   }
 
   return (
@@ -372,16 +372,14 @@ export function UsersPage() {
           <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex-1 min-w-[200px]">
               <Input
-                placeholder="Search..."
+                placeholder="Search by name, email or ID..."
                 value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearchTerm(e.target.value)
-                }
+                onChange={handleSearchChange}
                 className="w-full"
               />
             </div>
             <div className="w-[200px]">
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <Select value={selectedRole} onValueChange={handleRoleChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Roles" />
                 </SelectTrigger>
@@ -394,7 +392,7 @@ export function UsersPage() {
               </Select>
             </div>
             <div className="w-[200px]">
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <Select value={selectedStatus} onValueChange={handleStatusChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
@@ -405,10 +403,7 @@ export function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={() => setIsAddUserOpen(true)}
-              className="bg-blue-950 hover:bg-blue-900"
-            >
+            <Button onClick={() => setIsAddUserOpen(true)} className="bg-blue-950 hover:bg-blue-900">
               + Add User
             </Button>
           </div>
@@ -427,20 +422,22 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user, index) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : users.length > 0 ? (
+                  users.map((user, index) => (
                     <TableRow key={user._id}>
-                      <TableCell>
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </TableCell>
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>{user.fullname}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.role}</TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${user.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                          className={`px-2 py-1 rounded-full text-xs ${user.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                             }`}
                         >
                           {user.status}
@@ -453,23 +450,19 @@ export function UsersPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setCurrentUser(user);
+                              setCurrentUser(user)
                               setEditUser({
                                 fullname: user.fullname,
                                 email: user.email,
                                 password: "",
                                 role: user.role,
-                              });
-                              setIsEditUserOpen(true);
+                              })
+                              setIsEditUserOpen(true)
                             }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => confirmDeleteUser(user._id)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => confirmDeleteUser(user._id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -478,7 +471,7 @@ export function UsersPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={7} className="text-center py-8">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -488,15 +481,11 @@ export function UsersPage() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalPages > 0 && (
             <div className="flex items-center justify-between mt-4 text-sm">
               <div>
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                {Math.min(
-                  currentPage * itemsPerPage,
-                  totalPages * itemsPerPage
-                )}{" "}
-                of {totalPages * itemsPerPage} results
+                Showing {users.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{" "}
+                {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} results
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -507,21 +496,39 @@ export function UsersPage() {
                 >
                   <span className="sr-only">Previous page</span>&lt;
                 </Button>
-                {Array.from(
-                  { length: totalPages },
-                  (_, index) => index + 1
-                ).map((page) => (
-                  <Button
-                    key={page}
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 w-8 p-0 ${currentPage === page ? "bg-yellow-100" : ""
-                      }`}
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
+
+                {(() => {
+                  // Calculate which page numbers to show
+                  let pages = []
+                  const maxVisiblePages = 5
+
+                  if (totalPages <= maxVisiblePages) {
+                    // Show all pages if there are 5 or fewer
+                    pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+                  } else if (currentPage <= 3) {
+                    // Near the start
+                    pages = [1, 2, 3, 4, 5]
+                  } else if (currentPage >= totalPages - 2) {
+                    // Near the end
+                    pages = Array.from({ length: 5 }, (_, i) => totalPages - 4 + i)
+                  } else {
+                    // In the middle
+                    pages = Array.from({ length: 5 }, (_, i) => currentPage - 2 + i)
+                  }
+
+                  return pages.map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      className={`h-8 w-8 p-0 ${currentPage === page ? "bg-blue-950 text-white" : ""}`}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))
+                })()}
+
                 <Button
                   variant="outline"
                   size="icon"
@@ -552,7 +559,7 @@ export function UsersPage() {
               onClick={() => setIsAddUserOpen(false)}
               className="absolute right-4 top-4"
             >
-              {/* <X className="h-4 w-4" /> */}
+              <X className="h-4 w-4" />
             </Button>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -564,9 +571,7 @@ export function UsersPage() {
                 id="fullname"
                 placeholder=""
                 value={newUser.fullname}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "new")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
@@ -578,9 +583,7 @@ export function UsersPage() {
                 type="email"
                 placeholder=""
                 value={newUser.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "new")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
@@ -591,21 +594,14 @@ export function UsersPage() {
                 id="password"
                 type="password"
                 value={newUser.password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "new")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "new")}
               />
             </div>
             <div className="grid gap-2">
               <label htmlFor="role" className="text-sm font-medium">
                 Role :
               </label>
-              <Select
-                value={newUser.role}
-                onValueChange={(value: string) =>
-                  handleSelectChange("role", value, "new")
-                }
-              >
+              <Select value={newUser.role} onValueChange={(value: string) => handleSelectChange("role", value, "new")}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
                 </SelectTrigger>
@@ -618,18 +614,10 @@ export function UsersPage() {
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsAddUserOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              className="bg-blue-950 hover:bg-blue-900"
-              onClick={handleAddUser}
-            >
+            <Button type="button" className="bg-blue-950 hover:bg-blue-900" onClick={handleAddUser}>
               Save
             </Button>
           </DialogFooter>
@@ -652,7 +640,7 @@ export function UsersPage() {
               onClick={() => setIsEditUserOpen(false)}
               className="absolute right-4 top-4"
             >
-              {/* <X className="h-4 w-4" /> */}
+              <X className="h-4 w-4" />
             </Button>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -663,9 +651,7 @@ export function UsersPage() {
               <Input
                 id="fullname"
                 value={editUser.fullname}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "edit")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
               />
             </div>
             <div className="grid gap-2">
@@ -676,9 +662,7 @@ export function UsersPage() {
                 id="email"
                 type="email"
                 value={editUser.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "edit")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
               />
             </div>
             <div className="grid gap-2">
@@ -689,9 +673,7 @@ export function UsersPage() {
                 id="password"
                 type="password"
                 value={editUser.password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  handleInputChange(e, "edit")
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e, "edit")}
               />
             </div>
             <div className="grid gap-2">
@@ -700,9 +682,7 @@ export function UsersPage() {
               </label>
               <Select
                 value={editUser.role}
-                onValueChange={(value: string) =>
-                  handleSelectChange("role", value, "edit")
-                }
+                onValueChange={(value: string) => handleSelectChange("role", value, "edit")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select Role" />
@@ -716,18 +696,10 @@ export function UsersPage() {
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsEditUserOpen(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setIsEditUserOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              className="bg-blue-950 hover:bg-blue-900"
-              onClick={handleEditUser}
-            >
+            <Button type="button" className="bg-blue-950 hover:bg-blue-900" onClick={handleEditUser}>
               Save
             </Button>
           </DialogFooter>
@@ -735,33 +707,23 @@ export function UsersPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Are you sure you want to delete this user?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              user and remove their data from our servers.
+              This action cannot be undone. This will permanently delete the user and remove their data from our
+              servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
+  )
 }

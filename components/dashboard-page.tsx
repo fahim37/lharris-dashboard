@@ -1,8 +1,7 @@
 "use client"
 
-import React from "react"
-
-import { useState, useEffect, useRef } from "react"
+import type React from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,7 +37,6 @@ interface MetricsData {
   confirmVisits: number
   inProgress: number
 }
-
 
 // Define types for our visits API response
 interface VisitClient {
@@ -165,6 +163,19 @@ interface RevenueGrowthResponse {
   data: RevenueGrowthData[]
 }
 
+// Update the UserResponse interface to match the provided API response format
+interface UserResponse {
+  status: boolean
+  message: string
+  data: UserData[]
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    itemsPerPage: number
+  }
+}
+
 interface UserData {
   _id: string
   fullname: string
@@ -172,16 +183,6 @@ interface UserData {
   role: "admin" | "client" | "staff" | "user" | "moderator"
   status: "active" | "inactive"
   lastActive: string
-}
-
-interface UserResponse {
-  status: boolean
-  data: UserData[]
-  pagination: {
-    currentPage: number
-    totalPages: number
-    totalItems: number
-  }
 }
 
 interface StaffMember {
@@ -227,8 +228,6 @@ interface Notification {
   time?: string
 }
 
-
-
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [searchTerm, setSearchTerm] = useState("")
@@ -244,7 +243,7 @@ export default function DashboardPage() {
     inProgress: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // const [error, setError] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState("")
@@ -297,6 +296,8 @@ export default function DashboardPage() {
 
   // State for the overview tab visit filter
   const [overviewVisitStatusFilter, setOverviewVisitStatusFilter] = useState<string>("all")
+  const [isOverviewVisitsLoading, setIsOverviewVisitsLoading] = useState(false)
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false)
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -325,10 +326,10 @@ export default function DashboardPage() {
           confirmVisits: data?.data?.confirmVisits || 128,
           inProgress: data?.data?.inProgress || 9,
         })
-        setError(null)
+        // setError(null)
       } catch (err) {
         console.error("Error fetching metrics:", err)
-        setError("Failed to load metrics data. Using fallback data.")
+        // setError("Failed to load metrics data. Using fallback data.")
       } finally {
         setIsLoading(false)
       }
@@ -357,8 +358,8 @@ export default function DashboardPage() {
         const data = await res.json()
         setRecentData(data)
       } catch (err) {
-        // console.error("Error:", err)
-        toast.error(err as string)
+        console.error("Error:", err)
+        // toast.error(err instanceof Error ? err.message : String(err))
       }
     }
 
@@ -367,57 +368,80 @@ export default function DashboardPage() {
 
   const [userData, setUserData] = useState<UserData[]>([])
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?page=${currentUserPage}&limit=${itemsPerPage}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        )
+  const fetchUsers = useCallback(async () => {
+    try {
+      // Build query parameters including filters
+      const queryParams = new URLSearchParams({
+        page: currentUserPage.toString(),
+        limit: itemsPerPage.toString(),
+      })
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch")
-        }
+      // Add role filter if not "all"
+      if (roleFilter !== "all") {
+        queryParams.append("role", roleFilter)
+      }
 
-        const response: UserResponse = await res.json()
+      // Add status filter if not "all"
+      if (statusFilter !== "all") {
+        queryParams.append("status", statusFilter)
+      }
+
+      // Add search term if present
+      if (searchTerm.trim()) {
+        queryParams.append("search", searchTerm.trim())
+      }
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/admin/all-user?${queryParams.toString()}`
+
+      const res = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch")
+      }
+
+      const response: UserResponse = await res.json()
+
+      if (response.status) {
         setUserData(response.data)
         if (response.pagination) {
           setTotalUserPages(response.pagination.totalPages)
           setCurrentUserPage(response.pagination.currentPage)
         }
-      } catch (err) {
-        // console.error("Error:", err)
-        toast.error( err as string || "Failed to fetch users")
+      } else {
+        throw new Error(response.message || "Failed to fetch users")
       }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err) || "Failed to fetch users")
     }
+  }, [currentUserPage, roleFilter, statusFilter, searchTerm, token, itemsPerPage])
 
+  // Update the useEffect dependency array to include roleFilter, statusFilter, and searchTerm
+  useEffect(() => {
     if (activeTab === "users") {
       fetchUsers()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, token, currentUserPage])
-
+  }, [activeTab, token, currentUserPage, roleFilter, statusFilter, searchTerm, fetchUsers])
 
   useEffect(() => {
     const fetchVisits = async () => {
       try {
-        const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`;
+        const baseUrl = `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`
         const queryParams = new URLSearchParams({
           page: currentVisitPage.toString(),
           limit: "10",
-        });
+        })
 
         if (visitStatusFilter !== "all") {
-          queryParams.append("status", visitStatusFilter);
+          queryParams.append("status", visitStatusFilter)
         }
 
-        const apiUrl = `${baseUrl}?${queryParams.toString()}`;
+        const apiUrl = `${baseUrl}?${queryParams.toString()}`
 
         const res = await fetch(apiUrl, {
           method: "GET",
@@ -425,36 +449,34 @@ export default function DashboardPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        });
+        })
 
         if (!res.ok) {
-          throw new Error("Failed to fetch visits");
+          throw new Error("Failed to fetch visits")
         }
 
-        const data: VisitResponse = await res.json();
-        setVisitsData(data);
+        const data: VisitResponse = await res.json()
+        setVisitsData(data)
         if (data.meta) {
-          setTotalVisitPages(data.meta.totalPages);
-          setCurrentVisitPage(data.meta.currentPage);
+          setTotalVisitPages(data.meta.totalPages)
+          setCurrentVisitPage(data.meta.currentPage)
         }
       } catch (err) {
-        console.error("Error fetching visits:", err);
-        toast.error("Failed to fetch visits");
+        console.error("Error fetching visits:", err)
+        toast.error(err instanceof Error ? err.message : String(err))
       }
-    };
+    }
 
     if (activeTab === "visits") {
-      fetchVisits();
+      fetchVisits()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentVisitPage, visitStatusFilter, token]);
-
+  }, [activeTab, currentVisitPage, visitStatusFilter, token])
 
   const handleStatusFilterChange = (newFilter: string) => {
-    setVisitStatusFilter(newFilter);
-    setCurrentVisitPage(1); // This will trigger the fetch with correct page
-  };
-
+    setVisitStatusFilter(newFilter)
+    setCurrentVisitPage(1) // This will trigger the fetch with correct page
+  }
 
   // Fetch staff members for the edit form
   useEffect(() => {
@@ -475,8 +497,7 @@ export default function DashboardPage() {
         const data = await res.json()
         setStaffMembers(data.data || [])
       } catch (err) {
-        toast.error( err as string || "Error fetching staff members:", )
-    
+        toast.error(err instanceof Error ? err.message : String(err) || "Error fetching staff members:")
       }
     }
 
@@ -485,40 +506,56 @@ export default function DashboardPage() {
     }
   }, [isEditVisitDialogOpen, token])
 
-  // Filter users based on search term and filters
-  const filteredUsers = userData.filter((user) => {
-    // Filter by search term
-    const matchesSearch =
-      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user._id.includes(searchTerm)
+  // Replace the filteredUsers calculation with this simpler version since filtering is now handled by the API
+  const filteredUsers = userData
 
-    // Filter by role
-    const matchesRole = roleFilter === "all" || user.role === roleFilter
+  // Handle overview visit status filter change
+  const handleOverviewVisitStatusFilterChange = (value: string) => {
+    setOverviewVisitStatusFilter(value)
+  }
 
-    // Filter by status
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter
+  // Update the useEffect for fetching visits in the Overview tab
+  useEffect(() => {
+    const fetchVisitsForOverview = async () => {
+      if (activeTab === "overview") {
+        setIsOverviewVisitsLoading(true)
+        try {
+          // Build query parameters including filters
+          const queryParams = new URLSearchParams({
+            limit: "10",
+          })
 
-    return matchesSearch && matchesRole && matchesStatus
-  })
+          // Add status filter if not "all"
+          if (overviewVisitStatusFilter !== "all") {
+            queryParams.append("status", overviewVisitStatusFilter)
+          }
 
-  // Filter visits based on search term and filters for the Visits tab
-  // const filteredVisits = React.useMemo(() => {
-  //   return visitsData?.data || []
-  // }, [visitsData])
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?${queryParams.toString()}`
 
+          const res = await fetch(apiUrl, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
 
-  // Filter visits for the Overview tab
-  const filteredOverviewVisits = React.useMemo(() => {
-    if (!visitsData?.data) return []
+          if (!res.ok) {
+            throw new Error("Failed to fetch visits")
+          }
 
-    return visitsData.data.filter((visit) => {
-      // Filter by status (case-insensitive comparison)
-      return (
-        overviewVisitStatusFilter === "all" || visit.status.toLowerCase() === overviewVisitStatusFilter.toLowerCase()
-      )
-    })
-  }, [visitsData, overviewVisitStatusFilter])
+          const data: VisitResponse = await res.json()
+          setVisitsData(data)
+        } catch (err) {
+          console.error("Error fetching visits for overview:", err)
+        } finally {
+          setIsOverviewVisitsLoading(false)
+        }
+      }
+    }
+
+    fetchVisitsForOverview()
+  }, [activeTab, token, overviewVisitStatusFilter])
 
   // Get status class for styling
   const getStatusClass = (status: string) => {
@@ -537,8 +574,6 @@ export default function DashboardPage() {
 
     return "bg-gray-100 text-gray-800"
   }
-
-  
 
   const handleDeleteClick = (userId: string) => {
     setSelectedUserId(userId)
@@ -575,7 +610,7 @@ export default function DashboardPage() {
       toast.success("User deleted successfully")
     } catch (error) {
       // console.error("Error deleting user:", error)
-      toast.error(error as string)
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsDeleteDialogOpen(false)
     }
@@ -602,8 +637,7 @@ export default function DashboardPage() {
 
       toast.success("User updated successfully")
     } catch (error) {
-      toast.error( error as string)
-     
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsEditDialogOpen(false)
     }
@@ -628,7 +662,7 @@ export default function DashboardPage() {
       setIsViewDialogOpen(true)
     } catch (error) {
       // console.error("Error fetching visit details:", error)
-      toast.error(error as string)
+      toast.error(error instanceof Error ? error.message : String(error))
     }
   }
 
@@ -661,7 +695,7 @@ export default function DashboardPage() {
       toast.success("Visit deleted successfully")
     } catch (error) {
       // console.error("Error deleting visit:", error)
-      toast.error( error as string || "Failed to delete visit")
+      toast.error(error instanceof Error ? error.message : String(error) || "Failed to delete visit")
     } finally {
       setIsDeleteVisitDialogOpen(false)
     }
@@ -715,7 +749,7 @@ export default function DashboardPage() {
       toast.success("Visit updated successfully")
     } catch (error) {
       // console.error("Error updating visit:", error)
-      toast.error(error as string)
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsEditVisitDialogOpen(false)
     }
@@ -774,7 +808,7 @@ export default function DashboardPage() {
       setSelectedVisitId("")
     } catch (error) {
       // console.error("Error updating status:", error)
-      toast.error(error as string)
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsSubmitting(false)
     }
@@ -887,6 +921,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchNotifications = async () => {
+      setIsNotificationsLoading(true)
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/admin`, {
           headers: {
@@ -895,57 +930,26 @@ export default function DashboardPage() {
         })
 
         if (!res.ok) {
-          throw new Error("Failed to fetch pending messages")
+          throw new Error("Failed to fetch notifications")
         }
 
         const data = await res.json()
         setNotifications(data.data)
         /* eslint-disable @typescript-eslint/no-explicit-any */
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err))
+        // setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setIsNotificationsLoading(false)
       }
     }
 
     fetchNotifications()
   }, [token])
 
-  // Fetch visits for the Overview tab
-  useEffect(() => {
-    const fetchVisitsForOverview = async () => {
-      if (activeTab === "overview" && !visitsData) {
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit`, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          })
-
-          if (!res.ok) {
-            throw new Error("Failed to fetch visits")
-          }
-
-          const data: VisitResponse = await res.json()
-          setVisitsData(data)
-        } catch (err) {
-          console.error("Error fetching visits for overview:", err)
-        }
-      }
-    }
-
-    fetchVisitsForOverview()
-  }, [activeTab, token, visitsData])
-
   return (
-    <div className="p-4 h-screen overflow-y-auto">
+    <div className="p-4 ">
       <PageHeader title="Admin Name" />
-
-      {error && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
-          <p>{error}</p>
-        </div>
-      )}
 
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
         <div className="bg-white rounded-full p-1 mb-6 inline-flex mt-2">
@@ -1161,16 +1165,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-1">
-            <div className="md:col-span-2 ">
+            <div className="md:col-span-2">
               <Card className="shadow-sm">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 sticky top-0 bg-white z-10 border-b">
                   <div className="flex justify-between items-center">
-                    <CardTitle>All Visits </CardTitle>
+                    <CardTitle>All Visits</CardTitle>
                     <div className="flex gap-2">
                       <Select
                         defaultValue="all"
                         value={overviewVisitStatusFilter}
-                        onValueChange={(value) => setOverviewVisitStatusFilter(value)}
+                        onValueChange={handleOverviewVisitStatusFilterChange}
                       >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue placeholder="Status" />
@@ -1187,19 +1191,23 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-xs text-gray-500">View and manage all scheduled visits</div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                    {visitsData?.data && visitsData.data.length > 0 ? (
-                      filteredOverviewVisits.map((visit) => (
+                <CardContent className="max-h-[300px] overflow-y-auto pr-2">
+                  <div className="space-y-4">
+                    {isOverviewVisitsLoading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
+                      </div>
+                    ) : visitsData?.data && visitsData.data.length > 0 ? (
+                      visitsData.data.map((visit) => (
                         <div key={visit._id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
                           <div
                             className={`w-2 self-stretch rounded-full ${visit.status.toLowerCase() === "completed"
-                              ? "bg-green-500"
-                              : visit.status.toLowerCase() === "cancelled"
-                                ? "bg-red-500"
-                                : visit.status.toLowerCase() === "confirmed"
-                                  ? "bg-blue-500"
-                                  : "bg-yellow-500"
+                                ? "bg-green-500"
+                                : visit.status.toLowerCase() === "cancelled"
+                                  ? "bg-red-500"
+                                  : visit.status.toLowerCase() === "confirmed"
+                                    ? "bg-blue-500"
+                                    : "bg-yellow-500"
                               }`}
                           ></div>
                           <div className="flex-1 min-w-0">
@@ -1243,35 +1251,45 @@ export default function DashboardPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        {isLoading ? "Loading visits..." : "No visits found"}
-                      </div>
+                      <div className="text-center py-8 text-gray-500">No visits found</div>
                     )}
                   </div>
                 </CardContent>
               </Card>
             </div>
-            <div className=" max-h-[410px] overflow-y-auto">
-              <Card className="shadow-sm">
-                <CardHeader className="pb-2">
+            <div>
+              <Card className="shadow-sm h-full flex flex-col">
+                <CardHeader className="pb-2 sticky top-0 bg-white z-10 border-b">
                   <div className="flex justify-between items-center">
                     <CardTitle>Notifications</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {notifications.map((notification, index) => (
-                      <div key={index} className="flex justify-between">
-                        <div>
+                <CardContent className="flex-1 overflow-y-auto max-h-[350px]">
+                  {isNotificationsLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    <div className="space-y-4">
+                      {notifications.map((notification, index) => (
+                        <div key={index} className="border-b pb-3 last:border-b-0">
                           <div className="text-sm font-medium">{notification?.message}</div>
-                          <div className="text-xs text-gray-500">{notification.time}</div>
+                          <div className="flex justify-between items-center mt-1">
+                            <div className="text-xs text-gray-500">
+                              {notification.displayUser?.fullname || "System"}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {notification?.time?.includes("h")
+                                ? notification.time
+                                : formatDate(notification.createdAt)}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {notification?.time?.includes("h") ? notification.time : ""}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">No notifications found</div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1527,7 +1545,6 @@ export default function DashboardPage() {
                   <SelectItem value="confirmed">Confirmed</SelectItem>
                 </SelectContent>
               </Select>
-          
             </div>
           </div>
 
@@ -2002,4 +2019,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
