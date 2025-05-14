@@ -236,6 +236,7 @@ export function VisitPage() {
           status: visit.status || "pending",
           address: visit.address || "",
           notes: visit.notes || "",
+          visitId: visit.visitId || "",
         })),
       )
 
@@ -331,6 +332,7 @@ export function VisitPage() {
             status: visit.status || "pending",
             address: visit.address || "",
             notes: visit.notes || "",
+            visitId: visit.visitId || "",
           })),
         )
 
@@ -373,13 +375,13 @@ export function VisitPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       // Reset to page 1 when search term or status filter changes
-      if (page !== 1) {
+      if (searchTerm !== "" || selectedStatus !== "all") {
         setPage(1)
       }
     }, 500) // 500ms debounce
 
     return () => clearTimeout(timer)
-  }, [searchTerm, selectedStatus, page])
+  }, [searchTerm, selectedStatus])
 
   const handleAddVisit = async () => {
     const errors = validateForm(addFormData)
@@ -627,7 +629,8 @@ export function VisitPage() {
   }
 
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+      setIsLoading(true)
       setPage(newPage)
     }
   }
@@ -635,14 +638,16 @@ export function VisitPage() {
   // Generate pagination items
   const renderPaginationItems = () => {
     const items = []
-    // const maxVisiblePages = 5
 
     // Always show first page
     items.push(
       <PaginationItem key="page-1">
         <PaginationLink
           isActive={page === 1}
-          onClick={() => handlePageChange(1)}
+          onClick={(e) => {
+            e.preventDefault()
+            handlePageChange(1)
+          }}
           className={page === 1 ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
         >
           1
@@ -667,7 +672,10 @@ export function VisitPage() {
         <PaginationItem key={`page-${i}`}>
           <PaginationLink
             isActive={page === i}
-            onClick={() => handlePageChange(i)}
+            onClick={(e) => {
+              e.preventDefault()
+              handlePageChange(i)
+            }}
             className={page === i ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
           >
             {i}
@@ -691,7 +699,10 @@ export function VisitPage() {
         <PaginationItem key={`page-${totalPages}`}>
           <PaginationLink
             isActive={page === totalPages}
-            onClick={() => handlePageChange(totalPages)}
+            onClick={(e) => {
+              e.preventDefault()
+              handlePageChange(totalPages)
+            }}
             className={page === totalPages ? "bg-[#0a1172] text-white hover:bg-[#1a2182]" : ""}
           >
             {totalPages}
@@ -860,7 +871,10 @@ export function VisitPage() {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => handlePageChange(page - 1)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page - 1)
+                    }}
                     className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     aria-disabled={page <= 1}
                   />
@@ -870,7 +884,10 @@ export function VisitPage() {
 
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => handlePageChange(page + 1)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handlePageChange(page + 1)
+                    }}
                     className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     aria-disabled={page >= totalPages}
                   />

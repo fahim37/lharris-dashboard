@@ -408,7 +408,7 @@ export function PricingPage() {
                           <TableHead className="w-[50px] pl-10">Transaction ID</TableHead>
                           <TableHead className="text-center">Date</TableHead>
                           <TableHead className="text-center">Visit Time</TableHead>
-                          <TableHead className="text-center">Amount</TableHead>
+                         
                           <TableHead className="text-center">Plan</TableHead>
                           <TableHead className="text-center">Status</TableHead>
                           <TableHead className="text-center">Actions</TableHead>
@@ -432,7 +432,7 @@ export function PricingPage() {
                                 hour12: true,
                               })}
                             </TableCell>
-                            <TableCell>{item.formattedAmount}</TableCell>
+                           
                             <TableCell className="capitalize">{item?.plan?.name || "N/A"}</TableCell>
                             <TableCell className="max-w-[200px]">
                               <span

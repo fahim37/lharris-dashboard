@@ -303,14 +303,17 @@ export default function DashboardPage() {
   /* eslint-disable @typescript-eslint/no-explicit-any */
 
   // Debounced search handler
-  const debouncedSearch = useCallback((value: string) => {
-    const handler = setTimeout(() => {
-      setVisitSearchTerm(value);
-      setCurrentVisitPage(1);
-    }, 500);
-  
-    return () => clearTimeout(handler);
-  }, [setVisitSearchTerm, setCurrentVisitPage]) as (value: string) => void;
+  const debouncedSearch = useCallback(
+    (value: string) => {
+      const handler = setTimeout(() => {
+        setVisitSearchTerm(value)
+        setCurrentVisitPage(1)
+      }, 500)
+
+      return () => clearTimeout(handler)
+    },
+    [setVisitSearchTerm, setCurrentVisitPage],
+  ) as (value: string) => void
 
   // Fetch metrics data from API
   useEffect(() => {
@@ -1276,38 +1279,39 @@ export default function DashboardPage() {
               </Card>
             </div>
             <div>
-              <Card className="shadow-sm h-full flex flex-col">
-                <CardHeader className="pb-2 sticky top-0 bg-white z-10 border-b">
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Notifications</CardTitle>
-                  </div>
+              <Card className="lg:col-span-2 ">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium">Notifications</CardTitle>
+                  <div className="text-xs text-muted-foreground">Latest updates and alerts.</div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto max-h-[350px]">
-                  {isNotificationsLoading ? (
-                    <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
-                    </div>
-                  ) : notifications.length > 0 ? (
-                    <div className="space-y-4">
-                      {notifications.map((notification, index) => (
-                        <div key={index} className="border-b pb-3 last:border-b-0">
-                          <div className="text-sm font-medium">{notification?.message}</div>
-                          <div className="flex justify-between items-center mt-1">
-                            <div className="text-xs text-gray-500">
-                              {notification.displayUser?.fullname || "System"}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {notification?.time?.includes("h")
-                                ? notification.time
-                                : formatDate(notification.createdAt)}
-                            </div>
+                <CardContent>
+                  <div className="space-y-4 max-h-[290px] overflow-y-auto">
+                    {isNotificationsLoading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
+                      </div>
+                    ) : notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <div key={notification?._id} className="flex justify-between items-start mt-5 text-[14px]">
+                          <div className="flex justify-between w-full text-[12px]">
+                            <h4 className="text-sm">{notification?.message}</h4>
+                            <p className="text-muted-foreground text-[12px] text-nowrap">
+                              {new Date(notification?.createdAt).toLocaleString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">No notifications found</div>
-                  )}
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No notifications found</div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
