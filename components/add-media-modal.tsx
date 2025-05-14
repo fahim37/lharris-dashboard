@@ -128,7 +128,7 @@ export function AddMediaModal({
         setImageFile(null);
         setVideoFile(null);
       } else {
-        console.error("Failed to submit form");
+        // console.error("Failed to submit form");
       }
     } catch (error) {
       console.error("Error submitting form:", error);

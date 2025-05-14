@@ -104,8 +104,8 @@ export default function MediaPage() {
       const data = await response.json();
       setVisits(data);
     } catch (error) {
-      console.error("API Error:", error);
-      toast.error("Failed to fetch visits");
+      // console.error("API Error:", error);
+      toast.error(error as string);
     }
   };
 
@@ -136,15 +136,15 @@ export default function MediaPage() {
       );
 
       if (!response.ok) {
-        console.log("Error: ", response.status);
+        // console.log("Error: ", response.status);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       await getAllVisits(page);
       toast.success("Visit deleted successfully");
     } catch (error) {
-      console.error("Delete Error:", error);
-      toast.error("Failed to delete visit");
+      // console.error("Delete Error:", error);
+      toast.error(error as string);
     }
     setIsDeleteMediaOpen(false);
     setVisitToDelete(null);

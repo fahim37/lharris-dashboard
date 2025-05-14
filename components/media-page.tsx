@@ -55,7 +55,7 @@ export function MediaPage() {
   const [activeTab, setActiveTab] = useState("list")
   console.log("activeTab", activeTab);
   
-  console.log();
+
   
 
   const filteredMedia = mediaItems.filter((item) => {

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Pencil, Trash2, Eye, Loader2, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "next-auth/react"
+// import { useRouter } from "next/navigation"
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +31,7 @@ interface Visit {
   clientEmail?: string
   address?: string
   notes?: string
+  visitId?: string
 }
 
 interface Staff {
@@ -37,30 +39,30 @@ interface Staff {
   fullname: string
 }
 
-interface VisitApiResponse {
-  _id: string
-  client?: {
-    fullname?: string
-    email?: string
-  }
-  staff?: {
-    fullname?: string
-    _id?: string
-  }
-  date: string
-  type?: string
-  status?: string
-  address?: string
-  notes?: string
-}
+// interface VisitApiResponse {
+//   _id: string
+//   client?: {
+//     fullname?: string
+//     email?: string
+//   }
+//   staff?: {
+//     fullname?: string
+//     _id?: string
+//   }
+//   date: string
+//   type?: string
+//   status?: string
+//   address?: string
+//   notes?: string
+// }
 
-interface PaginatedVisitsResponse {
-  data: VisitApiResponse[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
+// interface PaginatedVisitsResponse {
+//   data: VisitApiResponse[]
+//   total: number
+//   page: number
+//   pageSize: number
+//   totalPages: number
+// }
 
 interface FormData {
   clientEmail: string
@@ -82,6 +84,7 @@ interface FormErrors {
 }
 
 export function VisitPage() {
+  // const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
   const [isAddVisitOpen, setIsAddVisitOpen] = useState(false)
@@ -92,7 +95,7 @@ export function VisitPage() {
   const [isAssignStaffOpen, setIsAssignStaffOpen] = useState(false)
   const [currentVisit, setCurrentVisit] = useState<Visit | null>(null)
   const [visitToDelete, setVisitToDelete] = useState<string | null>(null)
-  const [visits, setVisits] = useState<Visit[]>([])
+  // const [visits, setVisits] = useState<Visit[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -100,9 +103,10 @@ export function VisitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAssigning, setIsAssigning] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [page, setPage] = useState(2)
+  const [page, setPage] = useState(1)
   const [pageSize] = useState(5)
   const [totalPages, setTotalPages] = useState(1)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   const session = useSession()
   const token = session.data?.accessToken
@@ -175,8 +179,24 @@ export function VisitPage() {
     try {
       if (!token) throw new Error("No authentication token found")
 
+      // Build query parameters for filtering
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      })
+
+      // Add search term if provided
+      if (searchTerm) {
+        queryParams.append("search", searchTerm)
+      }
+
+      // Add status filter if not "all"
+      if (selectedStatus !== "all") {
+        queryParams.append("status", selectedStatus)
+      }
+
       const visitsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&pageSize=${pageSize}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?${queryParams.toString()}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -186,11 +206,27 @@ export function VisitPage() {
       )
 
       if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
-      const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
-      console.log(visitsResponse, "visitsData");
+      const visitsData = await visitsResponse.json()
 
-      setVisits(
-        visitsData.data.map((visit: VisitApiResponse) => ({
+      // Transform API data to component state
+      // setVisits(
+      //   visitsData.data.map((visit: any) => ({
+      //     id: visit._id,
+      //     clientName: visit.client?.fullname || "N/A",
+      //     clientEmail: visit.client?.email || "",
+      //     staffName: visit.staff?.fullname || "Staff not assigned",
+      //     date: visit.date,
+      //     type: visit.type || "N/A",
+      //     status: visit.status || "pending",
+      //     address: visit.address || "",
+      //     notes: visit.notes || "",
+      //   })),
+      // )
+
+      // Update filtered visits directly from API response
+      setFilteredVisits(
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        visitsData.data.map((visit: any) => ({
           id: visit._id,
           clientName: visit.client?.fullname || "N/A",
           clientEmail: visit.client?.email || "",
@@ -202,7 +238,11 @@ export function VisitPage() {
           notes: visit.notes || "",
         })),
       )
-      setTotalPages(Math.max(1, visitsData.totalPages))
+
+      // Update pagination data from API response
+      setTotalPages(Math.max(1, visitsData.meta.totalPages))
+      setPage(visitsData.meta.currentPage)
+
       return true
     } catch (error) {
       console.error("Error refreshing visit data:", error)
@@ -220,9 +260,25 @@ export function VisitPage() {
       try {
         if (!token) return
 
-        // Fetch visits with pagination
+        // Build query parameters for filtering
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+        })
+
+        // Add search term if provided
+        if (searchTerm) {
+          queryParams.append("search", searchTerm)
+        }
+
+        // Add status filter if not "all"
+        if (selectedStatus !== "all") {
+          queryParams.append("status", selectedStatus)
+        }
+
+        // Fetch visits with pagination and filters
         const visitsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?page=${page}&limit=${pageSize}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/visits/get-all-visit?${queryParams.toString()}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -232,7 +288,7 @@ export function VisitPage() {
         )
 
         if (!visitsResponse.ok) throw new Error("Failed to fetch visits")
-        const visitsData: PaginatedVisitsResponse = await visitsResponse.json()
+        const visitsData = await visitsResponse.json()
 
         // Fetch staff only once when component mounts or token changes
         if (staffList.length === 0) {
@@ -249,8 +305,23 @@ export function VisitPage() {
         }
 
         // Transform API data to component state
-        setVisits(
-          visitsData.data.map((visit: VisitApiResponse) => ({
+        // setVisits(
+        //   visitsData.data.map((visit: any) => ({
+        //     id: visit._id,
+        //     clientName: visit.client?.fullname || "N/A",
+        //     clientEmail: visit.client?.email || "",
+        //     staffName: visit.staff?.fullname || "Staff not assigned",
+        //     date: visit.date,
+        //     type: visit.type || "N/A",
+        //     status: visit.status || "pending",
+        //     address: visit.address || "",
+        //     notes: visit.notes || "",
+        //   })),
+        // )
+
+        // Update filtered visits directly from API response
+        setFilteredVisits(
+          visitsData.data.map((visit: any) => ({
             id: visit._id,
             clientName: visit.client?.fullname || "N/A",
             clientEmail: visit.client?.email || "",
@@ -262,17 +333,19 @@ export function VisitPage() {
             notes: visit.notes || "",
           })),
         )
-        setTotalPages(Math.max(1, visitsData.totalPages))
+
+        // Update pagination data from API response
+        setTotalPages(Math.max(1, visitsData.meta.totalPages))
+        setPage(visitsData.meta.currentPage)
       } catch (error) {
-        console.error("Error fetching data:", error)
-        toast.error("Failed to load data")
+        toast.error(error instanceof Error ? error.message : "Failed to fetch data")
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchData()
-  }, [token, page, pageSize, staffList.length])
+  }, [token, page, pageSize, searchTerm, selectedStatus, staffList.length])
 
   // Populate edit form when currentVisit changes
   useEffect(() => {
@@ -295,35 +368,18 @@ export function VisitPage() {
   }, [currentVisit, staffList])
 
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([])
+  console.log("Filtered Visits:", filteredVisits)
 
   useEffect(() => {
-    const filtered = visits.filter((visit) => {
-      const matchesSearch =
-        visit.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.id.toLowerCase().includes(searchTerm.toLowerCase())
+    const timer = setTimeout(() => {
+      // Reset to page 1 when search term or status filter changes
+      if (page !== 1) {
+        setPage(1)
+      }
+    }, 500) // 500ms debounce
 
-      const matchesStatus = selectedStatus === "all" || visit.status === selectedStatus
-
-      return matchesSearch && matchesStatus
-    })
-
-    setFilteredVisits(filtered)
-  }, [visits, searchTerm, selectedStatus])
-
-  useEffect(() => {
-    // Reset to page 1 when search term or status filter changes
-    setPage(1)
-  }, [searchTerm, selectedStatus])
-
-  // Calculate total pages for filtered results
-  useEffect(() => {
-    if (searchTerm || selectedStatus !== "all") {
-      // When filtering, we're handling pagination on the client side
-      const calculatedPages = Math.max(1, Math.ceil(filteredVisits.length / pageSize))
-      setTotalPages(calculatedPages)
-    }
-  }, [filteredVisits, pageSize, searchTerm, selectedStatus])
+    return () => clearTimeout(timer)
+  }, [searchTerm, selectedStatus, page])
 
   const handleAddVisit = async () => {
     const errors = validateForm(addFormData)
@@ -376,7 +432,7 @@ export function VisitPage() {
         type: "",
       })
     } catch (error) {
-      console.error("Error adding visit:", error)
+      // console.error("Error adding visit:", error)
       toast.error(error instanceof Error ? error.message : "Failed to add visit")
     } finally {
       setIsAdding(false)
@@ -424,8 +480,8 @@ export function VisitPage() {
       setIsEditVisitOpen(false)
       setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating visit:", error)
-      toast.error("Failed to update visit")
+      // console.error("Error updating visit:", error)
+      toast.error(error as string)
     } finally {
       setIsEditing(false)
     }
@@ -452,8 +508,8 @@ export function VisitPage() {
 
       toast.success("Visit deleted successfully")
     } catch (error) {
-      console.error("Error deleting visit:", error)
-      toast.error("Failed to delete visit")
+      // console.error("Error deleting visit:", error)
+      toast.error(error as string)
     } finally {
       setIsDeleteConfirmOpen(false)
       setVisitToDelete(null)
@@ -548,8 +604,8 @@ export function VisitPage() {
       setStatusForm({ status: "", notes: "" })
       setCurrentVisit(null)
     } catch (error) {
-      console.error("Error updating status:", error)
-      toast.error("Failed to update status. Please try again.")
+      // console.error("Error updating status:", error)
+      toast.error(error as string)
     } finally {
       setIsSubmitting(false)
     }
@@ -647,8 +703,19 @@ export function VisitPage() {
     return items
   }
 
+  // const navigateTo = (path: string) => {
+  //   setIsNavigating(true)
+  //   router.push(path)
+  // }
+
+  useEffect(() => {
+    setIsNavigating(false)
+  }, [])
+
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className={`flex flex-col h-full transition-opacity duration-300 ${isNavigating ? "opacity-70" : "opacity-100"}`}
+    >
       <PageHeader title="Visit Management" />
 
       <div className="p-4">
@@ -709,7 +776,7 @@ export function VisitPage() {
                 ) : filteredVisits.length > 0 ? (
                   filteredVisits.map((visit) => (
                     <TableRow key={visit.id}>
-                      <TableCell className="font-medium">{String(visit.id).slice(-4)}</TableCell>
+                      <TableCell className="font-medium">{visit?.visitId}</TableCell>
                       <TableCell>{visit.clientName}</TableCell>
                       <TableCell>{visit.staffName}</TableCell>
                       <TableCell>
@@ -785,8 +852,8 @@ export function VisitPage() {
           </div>
 
           {/* Shadcn Pagination Component */}
-          <div className="mt-4">
-            <div className="text-sm text-muted-foreground mb-2">
+          <div className="mt-4 items-center flex justify-between">
+            <div className="text-sm text-muted-foreground mb-2 text-nowrap">
               Showing page {page} of {totalPages}
             </div>
             <Pagination>
